@@ -16,3 +16,7 @@ state/*.bak
 # 日志与产物
 logs/
 state/brief-*.md
+# 派生产物：每次运行都会变，纳入版本库只会制造冲突
+state/self-export.md
+state/resource-brief.md
+state/heartbeat.jsonl
