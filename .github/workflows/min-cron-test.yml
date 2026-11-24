@@ -1,0 +1,10 @@
+name: min-cron-test
+on:
+  schedule:
+    - cron: '37 */2 * * *'
+    - cron: '52 */2 * * *'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "minimal cron test fired"
