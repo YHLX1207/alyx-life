@@ -126,5 +126,17 @@ except: print('')" 2>/dev/null)
 
 echo "  ✓ 快照已发布"
 echo "    $DL"
+
+# 发布后立刻回读校验（防缓存）：确认下载到的就是刚上传的那份
+echo "  6) 回读校验（防缓存）…"
+timeout 120 curl -sL --max-time 110 -H "Cache-Control: no-cache" \
+  -o "$WORK/verify.tar.xz" "$DL?t=$(date +%s)" 2>/dev/null
+_VSZ=$(wc -c < "$WORK/verify.tar.xz" 2>/dev/null || echo 0)
+if [ "$_VSZ" = "$SZ" ]; then
+  _VN=$(tar tJf "$WORK/verify.tar.xz" 2>/dev/null | grep -c '\.sh$')
+  echo "     ✓ 大小一致 ${_VSZ}B，含 $_VN 个脚本"
+else
+  echo "     ⚠ 回读大小不符（远端 $_VSZ / 本地 $SZ）—— 可能 CDN 缓存未刷新，非致命"
+fi
 printf '{"ts":"%s","kind":"release","tag":"%s","size":%d,"url":"%s"}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TAG" "$SZ" "$DL" >> ../state/offsite-seed.jsonl
