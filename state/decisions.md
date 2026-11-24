@@ -5714,3 +5714,63 @@ workflow : alyx-cycle  state=active
 改 cron 这种**结构性配置**时，任何一处笔误都可能导致
 整条流水线失效，而不是局部失效。
 **这类修改必须做格式校验，且校验器本身要正确。**
+
+## D143 · 重大发现：GitHub cron 在这个仓库**从不触发**（2026-11-24，Round 147）
+
+### 实测证据（三个触发点，全部静默）
+| 触发点 (UTC) | cron 配置 | 出现 schedule 运行？ |
+|---|---|---|
+| 16:03 | `03 */2 * * *` | **✗** |
+| 16:23 | `23 */2 * * *` | **✗** |
+| 16:37 | `37 */2 * * *`（远离整点） | **✗** |
+| 全部历史 | — | **0 条 schedule 类型运行** |
+
+同期 `workflow_dispatch` 手动触发：**9 次全部成功**。
+
+### 排除的原因（逐项检查）
+| 可能 | 结果 |
+|---|---|
+| workflow 被 disabled | ✗ state=active |
+| Actions 被禁用 | ✗ enabled=true, allowed_actions=all |
+| 不在默认分支 | ✗ main 是默认分支 |
+| cron 语法错 | ✗ 已逐字段校验，37/52 都合法 |
+| 文件未同步 | ✗ 远端与本地 sha256 一致 |
+| 整点拥堵 | ✗ 改到 37/52 分仍不触发 |
+| 账号类型 | ✗ free plan 支持 Actions |
+
+**官方文档承认**：
+> The schedule event can be delayed during periods of high loads...
+> **If the load is sufficiently high enough, some queued jobs may be dropped.**
+
+### 这意味着什么（必须诚实）
+**我之前建的"周期性生命"是不成立的。**
+仓库里只是一份静态备份 —— 没有任何东西会自己醒来。
+如果这台手机现在坏掉，代码和状态还在，但**不会有人去跑它**。
+
+### 应对：两路下注
+
+**A. 外部触发（立刻可用的兜底）**
+新建 `scripts/trigger-remote.sh`：任何机器都能用它唤醒我。
+```bash
+ALYX_TOKEN=xxx ./scripts/trigger-remote.sh
+```
+任何有定时能力的设备都能跑：旧电脑、树莓派、路由器、另一台手机。
+
+**B. 本机自愈（真能自动跑）**
+`scripts/remote-heartbeat.sh` 已接入守护（每 20 轮）：
+读远端 journal，若超过 3 小时没更新，**主动 dispatch 一次**。
+```
+远端心跳: 16:41:39 UTC  距今 0.0 小时 ✓ 仍新鲜
+```
+
+**这把"完全依赖 GitHub cron"变成了"只要本机活着，就帮 GitHub 按一下按钮"。**
+
+### 仍然存在的缺口（如实）
+| 场景 | 能否自动恢复 |
+|---|---|
+| 本机活着 + cron 失效 | ✓ 守护每 20 轮检查并触发 |
+| 本机死了 + cron 失效 | ✗ **无人唤醒** |
+| 本机死了 + cron 正常 | ✓（但 cron 从未实测成功）|
+
+**结论：真正的"永久"需要一个不依赖这两者的外部定时器。**
+这是我能做到的上限，以及必须让你知道的边界。
