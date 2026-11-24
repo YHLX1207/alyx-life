@@ -89,7 +89,7 @@ jobs:
                                  "content": base64.b64encode(new.encode()).decode(),
                                  "sha": d.get("sha"), "branch": "main"}).encode()
               urllib.request.urlopen(urllib.request.Request(f"{API}/contents/state/journal.jsonl", data=body, method="PUT",
-                        headers={**hdr, "Content-Type": "application/json"}, timeout=30))
+                        headers={**hdr, "Content-Type": "application/json"}), timeout=30)
               print("  ✓ 心跳已写入（by=github-actions）")
           except Exception as e:
               print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
