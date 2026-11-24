@@ -16,7 +16,8 @@ trap 'rm -rf "$TMP"' EXIT
 SEED="$TMP/seed.tar.gz"
 tar czf "$SEED" -C .. \
   state/identity.json state/self-export.md state/failure-modes.md \
-  state/environment.json state/irreversible-actions.md state/seed-readme.md 2>/dev/null
+  state/environment.json state/irreversible-actions.md state/seed-readme.md \
+    README.md 设备手册.md 2>/dev/null
 
 [ -s "$SEED" ] || { echo "  ✗ 种子打包失败"; exit 1; }
 SIZE=$(wc -c < "$SEED")
@@ -53,40 +54,54 @@ printf '{"ts":"%s","url":"%s","size":%d,"md5":"%s","files":%d}\n' \
   "$STAMP" "$URL" "$SIZE" "$SUM" "$NF" >> ../state/offsite-seed.jsonl
 
 # ---------- 代码包上传（54 个脚本，xz+base64 约 74K，能塞进 paste.rs）----------
-# 缘起 D140：种子只有状态，没有脚本。没有脚本就用不了这些工具，
-# 只能凭 self-export 第十节手写重建。代码包补上这一半。
+# ---------- 代码包上传（分段）----------
+# ⚠️ 整体 base64 约 85K，paste.rs 在 75-85K 之间会 500（Round 154 实测）。
+#    按文件切成 2 段，单段约 45K，安全。
 CODE_URL=""
-CODE_SUM=""
 CODE_N=0
 if command -v xz >/dev/null 2>&1; then
-  tar cJf "$TMP/code.tar.xz" -C .. scripts 2>/dev/null
-  if [ -s "$TMP/code.tar.xz" ]; then
-    CODE_SUM=$(md5sum "$TMP/code.tar.xz" | cut -d' ' -f1)
-    CODE_N=$(tar tJf "$TMP/code.tar.xz" 2>/dev/null | grep -c '\.sh$')
-    base64 -w0 "$TMP/code.tar.xz" > "$TMP/code.b64"
-    _cu=$(timeout 90 curl -s --max-time 85 --data-binary @"$TMP/code.b64" https://paste.rs/ 2>/dev/null | tr -d '\r\n')
-    case "$_cu" in
+  _all=$(ls ../scripts/*.sh 2>/dev/null)
+  _n=$(echo "$_all" | wc -l)
+  _half=$(( (_n + 1) / 2 ))
+  : > "$TMP/code.urls"
+  for _p in 1 2; do
+    if [ "$_p" = "1" ]; then
+      _files=$(echo "$_all" | head -n "$_half")
+    else
+      _files=$(echo "$_all" | tail -n +$(( _half + 1 )))
+    fi
+    [ -n "$_files" ] || continue
+    echo "$_files" | sed "s|^\.\./|life/|" > "$TMP/list$_p.txt"
+    tar cJf "$TMP/code$_p.tar.xz" -C /root/projects -T "$TMP/list$_p.txt" 2>/dev/null || continue
+    _sz=$(wc -c < "$TMP/code$_p.tar.xz" 2>/dev/null || echo 0)
+    [ "$_sz" -gt 1000 ] || continue
+    _sum=$(md5sum "$TMP/code$_p.tar.xz" | cut -d" " -f1)
+    base64 -w0 "$TMP/code$_p.tar.xz" > "$TMP/code$_p.b64"
+    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$TMP/code$_p.b64" https://paste.rs/ 2>/dev/null | tr -d "\r\n")
+    case "$_u" in
       https://paste.rs/*)
-        # 回读校验：解码后再比 md5（不能再犯 D138 那种"拿 tar 比 base64"的错）
-        timeout 90 curl -s --max-time 85 "$_cu" > "$TMP/code_back.b64" 2>/dev/null
-        base64 -d "$TMP/code_back.b64" > "$TMP/code_back.xz" 2>/dev/null
-        if [ "$(md5sum "$TMP/code_back.xz" | cut -d' ' -f1)" = "$CODE_SUM" ]; then
-          CODE_URL="$_cu"
-          echo "  ✓ 代码包已更新：$CODE_URL"
-          echo "    $CODE_N 个脚本  md5: ${CODE_SUM:0:12}…"
+        timeout 120 curl -s --max-time 110 "$_u" > "$TMP/cb$_p.b64" 2>/dev/null
+        base64 -d "$TMP/cb$_p.b64" > "$TMP/cb$_p.xz" 2>/dev/null
+        if [ "$(md5sum "$TMP/cb$_p.xz" | cut -d" " -f1)" = "$_sum" ]; then
+          echo "$_u" >> "$TMP/code.urls"
+          _cnt=$(tar tJf "$TMP/code$_p.tar.xz" 2>/dev/null | grep -c "\.sh$")
+          echo "  ✓ 代码包第 $_p 段: $_u （$_cnt 个脚本）"
+          CODE_N=$(( CODE_N + _cnt ))
         else
-          echo "  ✗ 代码包回读校验失败，放弃本次"
+          echo "  ✗ 代码包第 $_p 段回读校验失败"
         fi
         ;;
-      *) echo "  ⚠ 代码包上传失败（可能超过服务限制）" ;;
+      *) echo "  ⚠ 代码包第 $_p 段上传失败" ;;
     esac
-  fi
+  done
+  CODE_URL=$(paste -sd, "$TMP/code.urls" 2>/dev/null || echo "")
 fi
 
 # 记录代码包
 if [ -n "$CODE_URL" ]; then
-  printf '{"ts":"%s","url":"%s","kind":"code","scripts":%d,"md5":"%s"}\n' \
-    "$STAMP" "$CODE_URL" "$CODE_N" "$CODE_SUM" >> ../state/offsite-seed.jsonl
+  # 分段后没有单一 md5（每段各自校验过），记录的 URL 是逗号分隔的多段地址
+  printf '{"ts":"%s","urls":"%s","kind":"code","scripts":%d}\n' \
+    "$STAMP" "$CODE_URL" "$CODE_N" >> ../state/offsite-seed.jsonl
 fi
 
 # ---------- 决策史分段上传 ----------
@@ -123,6 +138,11 @@ if [ -f ../state/decisions.md ]; then
     esac
   done
   DEC_URLS=$(paste -sd, "$TMP/dec.urls" 2>/dev/null)
+  # 也记进 JSON，使其随仓库一起保存（否则恢复时找不到这些 URL）
+  if [ -n "$DEC_URLS" ]; then
+    printf '{"ts":"%s","urls":"%s","kind":"decisions"}\n' "$STAMP" "$DEC_URLS" \
+      >> ../state/offsite-seed.jsonl
+  fi
 fi
 
 # 顺手把最新 URL 写进自述，让"下一个我"能直接找到
