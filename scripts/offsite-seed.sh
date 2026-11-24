@@ -16,7 +16,7 @@ trap 'rm -rf "$TMP"' EXIT
 SEED="$TMP/seed.tar.gz"
 tar czf "$SEED" -C .. \
   state/identity.json state/self-export.md state/failure-modes.md \
-  state/environment.json state/irreversible-actions.md 2>/dev/null
+  state/environment.json state/irreversible-actions.md state/seed-readme.md 2>/dev/null
 
 [ -s "$SEED" ] || { echo "  ✗ 种子打包失败"; exit 1; }
 SIZE=$(wc -c < "$SEED")

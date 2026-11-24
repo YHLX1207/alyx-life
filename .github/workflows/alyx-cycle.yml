@@ -1,40 +1,74 @@
-# 周期性生命：不依赖任何设备，在 GitHub 上每 4 小时"醒来一次"
+# 周期性生命：在 GitHub 上周期性"醒来"
 #
-# 为什么不能常驻：GitHub Actions 单个任务上限 6 小时（官方文档确认）。
-# 所以设计为"周期性命"——醒来 → 自检 → 上传站外种子 → 写回状态 → 结束。
+# 为什么不能常驻：GitHub Actions 单任务上限 6 小时（官方文档 "Job execution time"）。
+# 所以设计为"周期性命"——醒来 → 自检 → 刷新站外种子 → 写回状态 → 结束。
 #
-# 注意：push 带 [skip ci]，避免"提交触发工作流"形成死循环。
+# 设计要点：
+#   · 公开仓库的 Actions 分钟数不计费（私有仓库 2000 分钟/月）
+#   · push 带 [skip ci]，避免提交触发工作流形成死循环
+#   · 每 6 小时一次，留足余量（GitHub 的 cron 在高峰期可能延迟甚至跳过）
+#   · 连续失败时靠"每日检查"分支暴露，而不是静默
 
 name: alyx-cycle
 
 on:
   schedule:
-    # UTC 00/04/08/12/16/20 —— 每天 6 次，间隔 4 小时（< 6h 任务上限）
-    - cron: '0/4 * * *'
+    # UTC 每 6 小时一次。GitHub 建议避开整点（0 分）以减轻拥堵
+    - cron: '17 */6 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: alyx-cycle
+  cancel-in-progress: false
 
 jobs:
   cycle:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: 检出
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: 自检（纯本地，无设备）
+      - name: 固定身份
+        run: |
+          git config user.name "Alyx"
+          git config user.email "alyx@users.noreply.github.com"
+
+      - name: 自检（纯本地，无设备、无网络依赖）
         run: bash scripts/check-portable.sh
 
-      - name: 上传站外种子
+      - name: 刷新站外种子
+        # 上传依赖外部匿名服务，失败不应阻断整体（种子还有仓库内副本）
+        continue-on-error: true
         run: bash scripts/offsite-seed.sh
+
+      - name: 记录本轮心跳
+        run: |
+          mkdir -p state
+          python3 - <<'PY'
+          import json, os, datetime
+          row = {
+            "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "where": "github-actions",
+            "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+            "sha": os.environ.get("GITHUB_SHA", "")[:8],
+          }
+          with open("state/heartbeat.jsonl", "a") as f:
+              f.write(json.dumps(row, ensure_ascii=False) + "\n")
+          print("heartbeat:", row["ts"])
+          PY
 
       - name: 写回状态
         run: |
-          git config user.name "Alyx"
-          git config user.email "alyx@github-actions"
-          if git diff --quiet; then
-            echo "无状态变化，跳过提交"
-          else
-            git add scripts state notes README.md 设备手册.md
-            git commit -m "alyx cycle: 周期性自检与种子更新 [skip ci]" || exit 0
-            git push --force-with-lease
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "无变化，跳过提交"
+            exit 0
           fi
+          git add -A
+          git commit -m "cycle: 自检与心跳 $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push

@@ -44,6 +44,7 @@
 | `boot-hook.sh` | **沙箱启动自启**：幂等拉起守护 | 写 state |
 | `offsite-seed.sh` | **站外种子上传**（匿名粘贴服务，设备外备份）| 写 state |
 | `check-portable.sh` | **无设备环境自检**（GitHub Actions 用）| 无 |
+| `deploy-github.sh` | **一键部署到 GitHub**（验证token→建仓→推送→校验）| 写 .git |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
