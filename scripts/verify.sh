@@ -96,6 +96,9 @@ if ./lint-embedded-py.sh >/dev/null 2>&1; then printf "  ✓ 内嵌 Python 语�
 else printf "  ✗ 内嵌 Python 语法错误\n"; fail=$((fail+1)); _rec_fail "内嵌 Python 语法错误"; fi
 if ./lint-probe.sh >/dev/null 2>&1; then printf "  ✓ 探针质量检查通过\n"; pass=$((pass+1));
 else printf "  ✗ 发现探针缺陷\n"; fail=$((fail+1)); _rec_fail "探针缺陷"; fi
+# 自愈入口必须存在（醒来时恢复守护的唯一手段）
+if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
+else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
 # 心跳判据必须能反映「守护死亡」，不能只看快照新鲜度（Round 128）
 _st_out=$(./status.sh 2>/dev/null)
 if printf '%s' "$_st_out" | grep -q "守护心跳"; then printf "  ✓ 守护心跳可读\n"; pass=$((pass+1));
