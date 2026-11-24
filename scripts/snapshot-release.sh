@@ -10,9 +10,9 @@
 # Round 146 踩过：`--exclude='secrets'` 对 `life/state/secrets/` 无效，
 # token 被装进包。改用"显式拷贝到干净目录"再打包，并在打包后**扫描验证**。
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"   # 停在 scripts/，与其他脚本一致
 
-TOKEN=$(cat state/secrets/github.token 2>/dev/null || echo "")
+TOKEN=$(cat ../state/secrets/github.token 2>/dev/null || echo "")
 [ -n "$TOKEN" ] || { echo "  ✗ 无 token，跳过（这是正常的：CI 环境没有本地 token）"; exit 0; }
 
 REPO="${ALYX_REPO:-YHLX1207/alyx-life}"
@@ -22,11 +22,11 @@ trap 'rm -rf "$WORK"' EXIT
 
 echo "  1) 构造干净副本…"
 mkdir -p "$WORK/dest"
-cp -r scripts "$WORK/dest/" 2>/dev/null
-cp -r notes   "$WORK/dest/" 2>/dev/null
+cp -r .          "$WORK/dest/scripts"    2>/dev/null
+cp -r ../notes   "$WORK/dest/notes"      2>/dev/null
 mkdir -p "$WORK/dest/state"
-cp state/*.json state/*.md state/*.jsonl "$WORK/dest/state/" 2>/dev/null
-cp README.md 设备手册.md "$WORK/dest/" 2>/dev/null
+cp ../state/*.json ../state/*.md ../state/*.jsonl "$WORK/dest/state/" 2>/dev/null
+cp ../README.md "../设备手册.md" "$WORK/dest/" 2>/dev/null
 # 明确剔除（不依赖 exclude 语义）
 rm -rf "$WORK/dest/state/secrets" "$WORK/dest/state/local-archive.tar.gz" 2>/dev/null
 rm -f  "$WORK/dest/state/watchdog.pid" "$WORK/dest/state/journal.jsonl" 2>/dev/null
@@ -61,7 +61,9 @@ echo "  3) 打包…"
 tar cJf "$WORK/alyx-full.tar.xz" -C "$WORK" dest 2>/dev/null
 SZ=$(wc -c < "$WORK/alyx-full.tar.xz")
 [ "$SZ" -gt 10000 ] || { echo "  ✗ 包过小（$SZ 字节），疑似路径错误"; exit 1; }
-echo "     $((SZ/1024)) KB，$(tar tJf "$WORK/alyx-full.tar.xz" | grep -c '\.sh$') 个脚本"
+_nsh=$(tar tJf "$WORK/alyx-full.tar.xz" 2>/dev/null | grep -c "\.sh$")
+[ "${_nsh:-0}" -ge 40 ] || { echo "  ✗ 仅 ${_nsh:-0} 个脚本，拷贝源路径可能错了"; exit 1; }
+echo "     $((SZ/1024)) KB，$_nsh 个脚本"
 
 echo "  4) 创建/复用 release…"
 REL=$(timeout 40 curl -s -H "Authorization: token $TOKEN" -H "User-Agent: alyx" \
@@ -125,4 +127,4 @@ except: print('')" 2>/dev/null)
 echo "  ✓ 快照已发布"
 echo "    $DL"
 printf '{"ts":"%s","kind":"release","tag":"%s","size":%d,"url":"%s"}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TAG" "$SZ" "$DL" >> state/offsite-seed.jsonl
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TAG" "$SZ" "$DL" >> ../state/offsite-seed.jsonl
