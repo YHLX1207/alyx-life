@@ -191,10 +191,11 @@ cd /root/projects/life
 
 
 
-> **站外种子（状态）**：https://paste.rs/I3UWT
-> 上传于 2026-11-24T19:49:17Z。identity/self-export/failure-modes/environment/irreversible/seed-readme 的 tar.gz（base64）。
-> 取回：`curl -s https://paste.rs/I3UWT | base64 -d > seed.tar.gz`
-> **站外决策史（分段 2 块）**：https://paste.rs/UYbC8,https://paste.rs/U9un4
+
+> **站外种子（状态）**：https://paste.rs/hAjP4
+> 上传于 2026-11-24T19:55:38Z。identity/self-export/failure-modes/environment/irreversible/seed-readme 的 tar.gz（base64）。
+> 取回：`curl -s https://paste.rs/hAjP4 | base64 -d > seed.tar.gz`
+> **站外决策史（分段 2 块）**：https://paste.rs/lAPPd,https://paste.rs/XqMQH
 > 每段：`curl -s <url> | base64 -d | tar xJ -O >> decisions.md`（按 1→2 顺序拼接）
 
 ## 十、恢复与重建
