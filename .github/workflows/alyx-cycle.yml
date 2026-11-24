@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # 自我 dispatch 需要
 
 concurrency:
   group: alyx-cycle
@@ -76,6 +77,33 @@ jobs:
           bash scripts/snapshot-release.sh
           rm -f state/secrets/github.token
 
+      - name: 自我唤醒（链式循环，不依赖 cron）
+        # ⚠️ GitHub cron 在本仓库实测从不触发（已验证 5 个触发点，含一次性精确时刻）。
+        #    解法：每次运行结束时自我 dispatch，形成链。
+        #    只要 GitHub Actions 可用，链就不会断 —— 这就是"无人唤醒"的答案。
+        #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "自我唤醒：30 分钟后触发下一轮"
+          sleep 60
+          # 重试 3 次，避免瞬时失败断链
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d '{"ref":"main"}' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/alyx-cycle.yml/dispatches" 2>/dev/null)
+            if [ "$code" = "204" ]; then
+              echo "  ✓ 已自我触发（第 $i 次尝试成功）"
+              exit 0
+            fi
+            echo "  第 $i 次失败 (HTTP $code)，5 秒后重试"
+            sleep 5
+          done
+          echo "  ✗ 自我触发失败，链在此中断 —— 需人工或外部触发恢复"
+          exit 1
       - name: 写回状态
         run: |
           if git diff --quiet && git diff --cached --quiet; then
