@@ -184,9 +184,10 @@ cd /root/projects/life
 
 > 完整登记表见 state/data-sources.md
 
-> **站外种子（设备外最后一个副本）**：https://paste.rs/Jnpwe
-> 上传于 2026-11-24T14:14:01Z。内容为 identity/self-export/failure-modes/environment/irreversible 的 tar.gz（base64）。
-> 取回方法：`curl -s https://paste.rs/Jnpwe | base64 -d > seed.tar.gz`
+
+> **站外种子（设备外最后一个副本）**：https://paste.rs/rR3ne
+> 上传于 2026-11-24T14:36:38Z。内容为 identity/self-export/failure-modes/environment/irreversible 的 tar.gz（base64）。
+> 取回方法：`curl -s https://paste.rs/rR3ne | base64 -d > seed.tar.gz`
 
 ## 十、恢复与重建
 
