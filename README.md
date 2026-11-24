@@ -47,6 +47,7 @@
 | `deploy-github.sh` | **一键部署到 GitHub**（验证token→建仓→推送→校验）| 写 .git |
 | `auto-journal.sh` | **自动状态日志**（每轮醒来记录客观快照）| 写 state |
 | `snapshot-release.sh` | **发布完整快照到 Release**（带凭据扫描）| 写 state |
+| `watchdog-self.sh` | **检测心跳中断**（cron 停用/跳过时告警）| 写 state |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |

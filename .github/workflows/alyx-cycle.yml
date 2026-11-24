@@ -14,7 +14,8 @@ name: alyx-cycle
 on:
   schedule:
     # UTC 每 6 小时一次。GitHub 建议避开整点（0 分）以减轻拥堵
-    - cron: '17 */6 * * *'
+    # 每 2 小时一次。GitHub 建议避开整点；频繁些是为了降低「漏跑就长时间缺席」的风险
+    - cron: '23 */2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -38,6 +39,11 @@ jobs:
         run: |
           git config user.name "Alyx"
           git config user.email "alyx@users.noreply.github.com"
+
+      - name: 检查上次心跳是否正常
+        # 距上次醒来超过 24 小时 ⇒ cron 曾被跳过/停用 ⇒ 标记失败以便被发现
+        continue-on-error: true
+        run: bash scripts/watchdog-self.sh
 
       - name: 自检（纯本地，无设备、无网络依赖）
         run: bash scripts/check-portable.sh
