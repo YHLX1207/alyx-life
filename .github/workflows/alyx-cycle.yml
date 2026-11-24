@@ -52,6 +52,19 @@ jobs:
         # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
         run: bash scripts/auto-journal.sh
 
+      - name: 发布完整快照到 Release
+        # 让"完整可恢复的那一份"始终有稳定 URL，不依赖某次 commit
+        # CI 环境无本地 token，需要用 GitHub 自动提供的 GITHUB_TOKEN
+        env:
+          GH_TOKEN_CI: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          mkdir -p state/secrets
+          printf '%s' "$GH_TOKEN_CI" > state/secrets/github.token
+          chmod 600 state/secrets/github.token
+          bash scripts/snapshot-release.sh
+          rm -f state/secrets/github.token
+
       - name: 写回状态
         run: |
           if git diff --quiet && git diff --cached --quiet; then
