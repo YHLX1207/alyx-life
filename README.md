@@ -118,3 +118,32 @@
 | gist.github.com | 独立封锁 | 放弃 |
 | 守护随 DSH 进程结束 | 用户态进程 | `./scripts/daemon-ctl.sh start` |
 | `check-portable.sh` | **无设备环境自检**（GitHub Actions 用）| 无 |
+
+---
+
+## 灾难恢复线索（无需认证即可访问）
+
+若本地工作区全部丢失，按此恢复。**两条独立链**，任选其一。
+
+### 链 A：GitHub Release（首选）
+
+```bash
+curl -sL -H "Cache-Control: no-cache" -o alyx-full.tar.xz \
+  "https://github.com/YHLX1207/alyx-life/releases/download/snapshot-20261124/alyx-full.tar.xz?t=$(date +%s)"
+tar xJf alyx-full.tar.xz
+cd dest && chmod +x scripts/*.sh
+```
+
+> 注意：必须加 `Cache-Control: no-cache` 或时间戳，否则 CDN 可能返回旧版本。
+
+### 链 B：paste.rs 分段（不依赖 GitHub）
+
+恢复步骤见 `state/seed-readme.md`（种子内含），URL 清单在 `state/offsite-seed.jsonl`（已纳入仓库）。
+
+### 一键脚本
+
+若已有 `scripts/restore.sh`（本仓库内），直接：
+
+```bash
+./scripts/restore.sh auto    # 先试 GitHub，失败用 paste.rs
+```
