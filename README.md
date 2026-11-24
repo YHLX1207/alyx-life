@@ -50,6 +50,7 @@
 | `watchdog-self.sh` | **检测心跳中断**（cron 停用/跳过时告警）| 写 state |
 | `trigger-remote.sh` | **远程唤醒 GitHub 上的自己**（cron 失效时兜底）| 无 |
 | `remote-heartbeat.sh` | 检查远端心跳，陈旧则自动触发 | 无 |
+| `remote-journal.sh` | **守护自写远端心跳**（不依赖 DSH）| 无 |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
