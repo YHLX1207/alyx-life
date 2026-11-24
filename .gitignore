@@ -23,3 +23,7 @@ state/heartbeat.jsonl
 
 # 凭据（绝不入库）
 state/secrets/
+
+# 运行时计数与告警
+state/iter-count
+state/alerts.md
