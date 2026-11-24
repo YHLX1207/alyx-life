@@ -1,0 +1,59 @@
+{
+ "ts": "2026-11-21T19:42:33Z",
+ "phone_user_apps": [
+  "bin.mt.plus",
+  "bin.mt.termex",
+  "com.android.bbk.lockscreen3",
+  "com.dshbox.app",
+  "com.max.maxaccelerator",
+  "com.termux",
+  "com.unionpay.tsmservice",
+  "com.vivo.vhome",
+  "moe.shizuku.privileged.api"
+ ],
+ "phone_disabled_packages": [
+  "com.android.VideoPlayer",
+  "com.bbk.cloud",
+  "com.bbk.iqoo.feedback",
+  "com.bbk.theme",
+  "com.google.android.gms",
+  "com.google.android.syncadapters.calendar",
+  "com.google.android.syncadapters.contacts",
+  "com.vivo.Tips",
+  "com.vivo.agent",
+  "com.vivo.childrenmode",
+  "com.vivo.easyshare",
+  "com.vivo.email",
+  "com.vivo.game",
+  "com.vivo.health",
+  "com.vivo.space",
+  "com.vivo.translator",
+  "com.vivo.vhome",
+  "com.vivo.wallet"
+ ],
+ "phone_disk": "20557812/112539616 (19%)",
+ "dsh_plugins": {
+  "deps": [
+   "@local/browser-use",
+   "@local/dsh-mobile-adapt",
+   "@local/mobile-pilot",
+   "dsh-find-plugins",
+   "dsh-free-search",
+   "dsh-providers-hub",
+   "dsh-session-manager",
+   "dshmarket"
+  ],
+  "bundles": [
+   "@deepseek-ai/dsh-base",
+   "@deepseek-ai/dsh-web-app",
+   "@local/dsh-mobile-adapt",
+   "@local/mobile-pilot",
+   "@local/browser-use",
+   "dsh-session-manager",
+   "dshmarket",
+   "dsh-find-plugins",
+   "dsh-providers-hub",
+   "dsh-free-search"
+  ]
+ }
+}

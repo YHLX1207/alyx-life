@@ -1,0 +1,10 @@
+{"ts": "2026-11-21T12:40:00Z", "event": "memory_observation", "mem_available_mb": 1677, "note": "vivo.browser 后台无界面占 281MB；tab_36 从峰值 1500 降至 1057MB", "normal_range_mb": "1677-2005（近期波动）"}
+{"ts":"2026-11-21T15:31:29Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:32:59Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:34:19Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:35:19Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:37:22Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:40:45Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:42:33Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:43:59Z","event":"pilot_device_status","result":"ok"}
+{"ts":"2026-11-21T15:46:27Z","event":"pilot_device_status","result":"ok"}

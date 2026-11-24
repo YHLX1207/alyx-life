@@ -1,0 +1,2 @@
+# DSHBox developer mode: restore guest PATH after /etc/profile reset.
+export PATH="/opt/elevation/bin:/root/projects/.dsh/dshbox/bin:$PATH"

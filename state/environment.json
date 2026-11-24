@@ -1,0 +1,92 @@
+{
+  "device": {
+    "model": "vivo V2061A (iQOO U3 / PD2061)",
+    "chipset": "MT6853 (Dimensity 720)",
+    "android": "10 / SDK 29",
+    "root": false,
+    "bootloader": "locked (flash.locked=1, verifiedbootstate=green)",
+    "root_feasibility": "none - vivo/iQOO 无 BL 解锁，无已知 MT6853 提权漏洞"
+  },
+  "sandbox": {
+    "type": "DSHBox proot container",
+    "os": "Debian GNU/Linux 13 (trixie) aarch64",
+    "node": "v24.19.0",
+    "npm": "11.17.0",
+    "pnpm": "11.1.2",
+    "dsh": "0.2.2-rc.2",
+    "profile": "web"
+  },
+  "privilege_channels": {
+    "adb": {
+      "type": "tcp loopback",
+      "endpoint": "127.0.0.1:5555",
+      "identity": "uid=2000(shell)",
+      "client": "/opt/elevation/bin/adb",
+      "server_socket": "localfilesystem:/opt/elevation/adb.sock",
+      "persistence": "lost on reboot; survives USB unplug"
+    },
+    "shizuku": {
+      "package": "moe.shizuku.privileged.api",
+      "starter": "/data/app/moe.shizuku.privileged.api-8_la03HwGBYjMSLtINev1Q==/lib/arm64/libshizuku.so",
+      "identity": "shellUid=2000",
+      "version": 13,
+      "persistence": "lost on reboot and on memory pressure"
+    },
+    "pilot": {
+      "mount": "/opt/pilot",
+      "capabilities_total": 41,
+      "capabilities_usable": 40,
+      "only_blocked": "sys.shell.full (完全Shizuku开关，默认关闭)",
+      "capability_audit": {
+        "tested_ok": 18,
+        "known_failure": {
+          "loc.read": "设备定位全关(location_mode=0)，非 pilot 缺陷"
+        },
+        "not_tested_by_choice": [
+          "contact.write",
+          "cal.write",
+          "media.write",
+          "audio.capture",
+          "screen.record",
+          "appops.set",
+          "app.install"
+        ],
+        "verified_at": "2026-11-21T09:24:40Z",
+        "note": "surface.virtual 本轮首次完整验证通过（create/query/release）"
+      }
+    }
+  },
+  "network": {
+    "note": "2026-11-21 重新核实：早期结论已部分失效，保留以作历史对照",
+    "dns_state": "223.5.5.5 现已能解析出真实 IP(20.205.243.166)；114.114.114.114 仍返回污染 IP(20.247.166.64)，8.8.8.8 仍返回错误 IP",
+    "github_behavior": "瞬时间歇：同一 URL 连续调用可能一次 000、几秒后 200。单次探测不可作为判定依据",
+    "ipv6_issue": "raw.githubusercontent.com 系统 DNS 优先返回 IPv6(2606:...)，该路径不通；强制 IPv4 即恢复",
+    "probe_divergence": "同一 IP 用 curl --resolve 探测可能失败，而写入 /etc/hosts 后普通访问成功。探测方法本身不可靠",
+    "mitigation": "/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效",
+    "gist_status": "多个候选 IP 均不可达，判定为独立封锁",
+    "last_verified": "2026-11-21T07:10:54Z"
+  },
+  "recorded_at": "2026-11-21T07:10:54Z",
+  "knowledge_freshness": {
+    "policy": "超过 24 小时的网络类结论必须重新实测后才可采用",
+    "network_verified_at": "2026-11-21T07:47:50Z",
+    "device_verified_at": "2026-11-21T08:44:47Z"
+  },
+  "resources": {
+    "mem_total_mb": 7561,
+    "observed_available_range": "1961 ~ 3083 MB",
+    "note": "可用内存 3.5 小时内下降 564MB：加速器 407MB + DSHBox标签进程膨胀 + node增长",
+    "accelerator": {
+      "package": "com.max.maxaccelerator",
+      "version": "1.5.105",
+      "first_installed": "2026-11-21T06:23:29Z",
+      "rss_mb": 407,
+      "note": "用户开启的临时加速器，常驻内存"
+    },
+    "last_measured": "2026-11-21T08:44:47Z"
+  },
+  "updated_at": "2026-11-21T11:55:06Z",
+  "measurement_caveats": {
+    "android_diskstats": "Android `dumpsys diskstats` 的 per-app 体积数组**不随卸载更新**，且各项累加会大于 df 实测（23-11-21 实测：累加 22GB vs df 15.2GB）。判定真实占用一律用 `df`；diskstats 仅可用于包名清单。"
+  }
+}

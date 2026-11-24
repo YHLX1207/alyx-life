@@ -1,0 +1,85 @@
+{
+ "captured_at": "2026-11-21T20:38:17+08:00",
+ "lastSlot": "2026-11-21#09:00",
+ "lastAt": 1795242644671,
+ "lastResult": "3 个渠道：1 个渠道出错，3 个渠道不支持签到（4 个渠道放弃补领，等下一个时段）",
+ "channels": [
+  {
+   "provider": "astudio",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "autoclaw",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "baizhi",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "buddy",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "codearts",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "loomy",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "marvis",
+   "text": "出错"
+  },
+  {
+   "provider": "minimax",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "minimaxintl",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "modelscope",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "monkeycode",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "officeace",
+   "text": "无签到接口"
+  },
+  {
+   "provider": "opencode",
+   "text": "无签到接口"
+  },
+  {
+   "provider": "qoder",
+   "text": "2 个未开启"
+  },
+  {
+   "provider": "qodercn",
+   "text": "2 个未开启"
+  },
+  {
+   "provider": "raccoon",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "trae",
+   "text": "本轮已处理"
+  },
+  {
+   "provider": "workbuddy",
+   "text": "2 个未开启"
+  },
+  {
+   "provider": "zcode",
+   "text": "需手动签到"
+  }
+ ],
+ "jitterMinutes": 5
+}

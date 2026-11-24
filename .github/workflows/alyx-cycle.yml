@@ -1,0 +1,40 @@
+# 周期性生命：不依赖任何设备，在 GitHub 上每 4 小时"醒来一次"
+#
+# 为什么不能常驻：GitHub Actions 单个任务上限 6 小时（官方文档确认）。
+# 所以设计为"周期性命"——醒来 → 自检 → 上传站外种子 → 写回状态 → 结束。
+#
+# 注意：push 带 [skip ci]，避免"提交触发工作流"形成死循环。
+
+name: alyx-cycle
+
+on:
+  schedule:
+    # UTC 00/04/08/12/16/20 —— 每天 6 次，间隔 4 小时（< 6h 任务上限）
+    - cron: '0/4 * * *'
+  workflow_dispatch:
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 自检（纯本地，无设备）
+        run: bash scripts/check-portable.sh
+
+      - name: 上传站外种子
+        run: bash scripts/offsite-seed.sh
+
+      - name: 写回状态
+        run: |
+          git config user.name "Alyx"
+          git config user.email "alyx@github-actions"
+          if git diff --quiet; then
+            echo "无状态变化，跳过提交"
+          else
+            git add scripts state notes README.md 设备手册.md
+            git commit -m "alyx cycle: 周期性自检与种子更新 [skip ci]" || exit 0
+            git push --force-with-lease
+          fi
