@@ -190,11 +190,12 @@ cd /root/projects/life
 > 完整登记表见 state/data-sources.md
 
 
-> **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/1eVjj
-> 代码包（分段）：https://paste.rs/MSMs5,https://paste.rs/RLAc1
-> 决策史（分段）：https://paste.rs/jGGQr,https://paste.rs/azHj8
-> 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
+
+> **站外种子（状态）**：https://paste.rs/I3UWT
+> 上传于 2026-11-24T19:49:17Z。identity/self-export/failure-modes/environment/irreversible/seed-readme 的 tar.gz（base64）。
+> 取回：`curl -s https://paste.rs/I3UWT | base64 -d > seed.tar.gz`
+> **站外决策史（分段 2 块）**：https://paste.rs/UYbC8,https://paste.rs/U9un4
+> 每段：`curl -s <url> | base64 -d | tar xJ -O >> decisions.md`（按 1→2 顺序拼接）
 
 ## 十、恢复与重建
 
