@@ -123,6 +123,12 @@ print(d.get('adb',0), d.get('shz',0))
   # 远程自愈（Round 147）：若 GitHub 上的心跳超过 3 小时没更新，
   # 说明那边的 cron 没跑（实测它确实从不触发），主动 dispatch 一次。
   # 只在"本机活着"时有效 —— 但它把"完全依赖 cron"变成"我醒着就帮你一把"。
+  # 让守护自己把"我还活着"写到远端（不依赖 DSH，也不依赖 cron）
+  # 频率较低（每 30 轮 ≈2h），避免 API 调用过密
+  if [ $(( n % 30 )) -eq 0 ]; then
+    ( timeout 90 ./remote-journal.sh >/dev/null 2>&1 || true ) &
+  fi
+
   if [ $(( n % 10 )) -eq 0 ]; then   # 每 10 轮≈45min 查一次，配合 3h 阈值，最坏延迟 3h45m
     ( timeout 90 ./remote-heartbeat.sh >/dev/null 2>&1 || true ) &
   fi
