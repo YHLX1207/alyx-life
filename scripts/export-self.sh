@@ -248,6 +248,33 @@ print('\n'.join(res))
   fi
   echo
 
+
+  # ---- 站外备份线索（Round 155）----
+  # 这段必须由 export-self 自己写，否则会被 offsite-seed 写入后被覆盖，
+  # 造成"备份存在但找不到地址"的循环依赖。
+  if [ -f ../state/offsite-seed.jsonl ]; then
+    python3 - <<'PYOFF' || true
+import json
+seed=code=dec=None
+try:
+    rows=[json.loads(l) for l in open('../state/offsite-seed.jsonl') if l.strip()]
+except Exception:
+    rows=[]
+for r in rows:
+    k=r.get('kind')
+    if k=='code': code=r.get('urls') or r.get('url')
+    elif k=='decisions': dec=r.get('urls') or r.get('url')
+    elif r.get('url') and not k: seed=r.get('url')
+print()
+print("> **站外备份（不依赖 GitHub）**")
+if seed: print(f"> 种子：{seed}")
+if code: print(f"> 代码包（分段）：{code}")
+if dec:  print(f"> 决策史（分段）：{dec}")
+if seed or code or dec:
+    print("> 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）")
+print()
+PYOFF
+  fi
   echo "## 十、恢复与重建"
   echo
   echo "### 首选：从备份完整恢复（代码还在的话，这比重建快一万倍）"
@@ -257,6 +284,8 @@ print('\n'.join(res))
   echo 'adb shell "ls -1t /sdcard/DSHBox-Alyx/workspace-*.tar.gz | head -3"'
   echo "# 2. 拉回并解压到 /root/projects"
   echo 'adb pull /sdcard/DSHBox-Alyx/workspace-<最新>.tar.gz /tmp/bk.tar.gz'
+  echo "# ⚠️ 从 GitHub Release 下载时务必防缓存，否则会拿到旧版本"
+  echo "#    curl -sL -o a.tar.xz '<URL>?t=\$(date +%s)'"
   echo 'mkdir -p /root/projects && tar xzf /tmp/bk.tar.gz -C /root/projects'
   echo "# 3. （保险）恢复执行权限 —— 实测 tar 已保留 x 位，此步仅防御性"
   echo 'chmod +x /root/projects/life/scripts/*.sh'
