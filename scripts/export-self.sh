@@ -38,6 +38,11 @@ mkdir -p "$(dirname "$OUT")"
   echo "./scripts/status.sh        # 一眼看全：是否健康、守护是否活着"
   echo "./scripts/verify.sh        # 回归（项数以输出为准），确认系统没坏"
   echo "./scripts/resource-brief.sh # 当前需不需要动手（先看这个再决定）"
+  echo ""
+  echo "# ⚠️ **醒来先做这件事**：./scripts/ensure-self.sh"
+  echo "#    它会检查守护是否在跑、远端心跳是否新鲜，并自动拉起守护。"
+  echo "#    DSH 重启后守护不会自动回来（容器内无 cron、profile.d 不加载），"
+  echo "#    但重启会让我醒来 —— 所以醒来第一件事就是恢复守护。"
   echo '```'
   echo
   echo "判断顺序："
