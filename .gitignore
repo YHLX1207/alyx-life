@@ -1,0 +1,18 @@
+# 运行时状态
+state/watchdog.pid
+state/fail-streak.json
+state/gh520_hosts
+state/gh_cache.json
+state/last_alert.json
+state/last-mutation-test.txt
+state/offsite-seed.jsonl
+# 大文件 / 易变记录
+state/local-archive.tar.gz
+state/history.jsonl
+state/resource-history.jsonl
+state/verify-failures.jsonl
+state/netbench.jsonl
+state/*.bak
+# 日志与产物
+logs/
+state/brief-*.md
