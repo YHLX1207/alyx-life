@@ -47,21 +47,10 @@ jobs:
         continue-on-error: true
         run: bash scripts/offsite-seed.sh
 
-      - name: 记录本轮心跳
-        run: |
-          mkdir -p state
-          python3 - <<'PY'
-          import json, os, datetime
-          row = {
-            "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "where": "github-actions",
-            "run_id": os.environ.get("GITHUB_RUN_ID", ""),
-            "sha": os.environ.get("GITHUB_SHA", "")[:8],
-          }
-          with open("state/heartbeat.jsonl", "a") as f:
-              f.write(json.dumps(row, ensure_ascii=False) + "\n")
-          print("heartbeat:", row["ts"])
-          PY
+      - name: 记录客观状态（auto-journal）
+        # 每轮醒来都留一份可复现的状态快照：决策数、脚本数、运行场景。
+        # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
+        run: bash scripts/auto-journal.sh
 
       - name: 写回状态
         run: |

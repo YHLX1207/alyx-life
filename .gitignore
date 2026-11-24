@@ -20,3 +20,6 @@ state/brief-*.md
 state/self-export.md
 state/resource-brief.md
 state/heartbeat.jsonl
+
+# 凭据（绝不入库）
+state/secrets/
