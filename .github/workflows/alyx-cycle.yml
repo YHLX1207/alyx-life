@@ -93,6 +93,12 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-reflect.sh
 
+      - name: 基于自省做判断
+        # 自省只产出观察，没有决策就是死数据。
+        # 本步骤按规则从 reflections 得出结论与建议动作，写入 chain-decisions.jsonl。
+        continue-on-error: true
+        run: bash scripts/chain-decide.sh
+
       - name: 通过 API 写入心跳（不依赖 git）
         # ⚠️ 写回状态的 git rebase 会重置本地修改，导致心跳丢失（Round 158 实测）。
         #    改为直接用 Contents API 追加，绕开 git，心跳一定可见。
