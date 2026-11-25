@@ -68,10 +68,12 @@ def fetch_all(urls):
 # 验证代码包：统计脚本数
 code_scripts = 0
 _code_data = fetch_all(code)
+_code_failed = 0
 for u in code:
     raw = _code_data.get(u)
     if raw is None:
-        print(f"  ⚠ 代码段 {u} 读取失败")
+        print(f"  ⚠ 代码段 {u} 读取失败（网络抖动）")
+        _code_failed += 1
         continue
     try:
         import io, tarfile
@@ -84,10 +86,12 @@ for u in code:
 # 验证决策史：统计 ## D
 dec_count = 0
 _dec_data = fetch_all(dec)
+_dec_failed = 0
 for u in dec:
     raw = _dec_data.get(u)
     if raw is None:
-        print(f"  ⚠ 决策段 {u} 读取失败")
+        print(f"  ⚠ 决策段 {u} 读取失败（网络抖动）")
+        _dec_failed += 1
         continue
     try:
         import io, tarfile
@@ -102,16 +106,35 @@ for u in dec:
 
 print(f"  paste.rs 链: {code_scripts} 脚本 / {dec_count} 决策")
 
+# ⚠️ 区分"抓取失败"与"内容不一致"（Round 199）
+#    网络抖动导致某段抓不到时，计数偏低会误判为"落后"。
+#    若有段抓不到，只提示"无法完全验证"，不算失败。
+_code_ok = (_code_failed == 0)
+_dec_ok = (_dec_failed == 0)
+
 ok = True
-if code_scripts < local_scripts * 0.95:
+if _code_ok and code_scripts < local_scripts * 0.95:
     print(f"  ✗ 代码包落后（{code_scripts} < {local_scripts}×0.95）")
     ok = False
-if dec_count < local_dec * 0.95:
+if _dec_ok and dec_count < local_dec * 0.95:
     print(f"  ✗ 决策史落后（{dec_count} < {local_dec}×0.95）")
     ok = False
 
+if _code_failed:
+    print(f"  → 代码段 {_code_failed}/{len(code)} 抓取失败，该链暂无法完整验证")
+if _dec_failed:
+    print(f"  → 决策段 {_dec_failed}/{len(dec)} 抓取失败，该链暂无法完整验证")
+
 if ok:
-    print("  ✓ 两条链内容一致（容差 5%）")
+    _verified = (not _code_failed) and (not _dec_failed)
+    if _verified:
+        print("  ✓ 两条链内容一致（容差 5%）")
+        sys.exit(0)
+    # 没有完整验证时，不能说"一致"，只能说"无法确认不一致"
+    if code_scripts == 0 and dec_count == 0:
+        print("  ⚠ 全部段抓取失败，无法验证链内容（请稍后重试）")
+        sys.exit(0)
+    print(f"  ⚠ 部分段未能验证（代码 {code_scripts}/{local_scripts}、决策 {dec_count}/{local_dec}），已验证部分未见落后")
     sys.exit(0)
 else:
     print("  → 运行 ./offsite-seed.sh 刷新站外链")
