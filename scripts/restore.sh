@@ -28,7 +28,41 @@ ok(){ printf "  ✓ %s\n" "$*"; }
 fail(){ printf "  ✗ %s\n" "$*"; }
 
 # ---------- A. GitHub Release ----------
-A_URL="https://github.com/YHLX1207/alyx-life/releases/download/snapshot-20261124/alyx-full.tar.xz"
+# ⚠️ 不能硬编码 tag：snapshot-release.sh 每天生成 snapshot-YYYYMMDD，
+#    硬编码会永远指向某一天的旧快照（Round 190 实测：指向 11-24 而实际是 11-25，
+#    少了 30 条决策、12 个脚本）。
+#    ⇒ 用 GitHub API 查询**最新** release 的下载地址。
+A_URL=${ALYX_SNAPSHOT_URL:-}
+
+if [ -z "$A_URL" ]; then
+  echo "  查询最新快照地址…"
+  A_URL=$(python3 - <<'PYURL'
+import json, urllib.request, sys
+try:
+    req = urllib.request.Request(
+        "https://api.github.com/repos/YHLX1207/alyx-life/releases?per_page=5",
+        headers={"User-Agent": "alyx", "Accept": "application/vnd.github+json",
+                 "Connection": "close"})
+    rels = json.loads(urllib.request.urlopen(req, timeout=20).read())
+    best = None
+    for r in rels:
+        for a in r.get("assets") or []:
+            if a.get("name") == "alyx-full.tar.xz":
+                cand = (a.get("created_at", ""), a.get("browser_download_url"))
+                if best is None or cand[0] > best[0]:
+                    best = cand
+    print(best[1] if best else "")
+except Exception:
+    print("")
+PYURL
+)
+fi
+
+if [ -z "$A_URL" ]; then
+  echo "  ✗ 无法获取最新快照地址（网络或 API 问题）"
+  return 1
+fi
+echo "  使用: $(basename "$(dirname "$A_URL")")/$(basename "$A_URL")"
 restore_a() {
   echo "== 链 A：GitHub Release =="
   # ⚠️ 必须防缓存（D149 实测：否则拿到旧版本）
