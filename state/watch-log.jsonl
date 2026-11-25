@@ -1,3 +1,4 @@
 {"ts": "2026-11-25T16:11:41Z", "me": "device-localhost", "role": "solo", "note": "只有我一个节点，无冗余", "others": [], "takeover_needed": false}
 {"ts": "2026-11-25T16:12:00Z", "me": "device-localhost", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "actions", "age_h": 0.11, "beats": 1}], "takeover_needed": false}
 {"ts": "2026-11-25T16:36:43Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.8, "beats": 1}], "takeover_needed": false}
+{"ts": "2026-11-25T17:07:37Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.31, "beats": 1}], "takeover_needed": false}
