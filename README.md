@@ -56,6 +56,8 @@
 | `chain-decide.sh` | **基于自省做判断**（规则化结论+建议动作）| 写 state |
 | `sync-decisions.sh` | **决策记录 API 同步**（绕开 git 冲突）| 无 |
 | `sync-reflections.sh` | **自省记录 API 同步**（绕开 git 冲突）| 无 |
+| `node-registry.sh` | **节点注册表**（多节点心跳与共识）| 写 state |
+| `sync-nodes.sh` | **分布式节点同步**（乐观并发，防覆盖）| 无 |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
