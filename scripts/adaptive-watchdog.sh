@@ -163,6 +163,11 @@ print(d.get('adb',0), d.get('shz',0))
     ( timeout 60 ./mutual-watch.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
+  # 日志轮转：每 50 轮（约 2.5-5 小时）检查一次，防止日志无限增长（Round 187）
+  if [ $(( n % 50 )) -eq 0 ]; then
+    ( timeout 30 ./log-rotate.sh 2000 3 >/dev/null 2>&1 || true ) &
+  fi
+
   ./snapshot.sh >/dev/null 2>&1 &
   sleep "$interval"
 done
