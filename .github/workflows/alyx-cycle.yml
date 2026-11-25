@@ -93,6 +93,16 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-reflect.sh
 
+      - name: 节点注册 + 分布式同步
+        # 分布式架构：每个节点记录自己，并合并其他节点的状态。
+        # 带 sha 乐观并发控制，避免多节点互相覆盖。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          bash scripts/node-registry.sh
+          bash scripts/sync-nodes.sh
+
       - name: 通过 API 同步自省记录
         # 自省走 git 写回时会被 rebase 丢弃（Round 171 实测：远端记录停在 2 小时前）。
         # 与心跳/决策一致，改用 API 同步。
