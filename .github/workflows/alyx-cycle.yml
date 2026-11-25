@@ -81,6 +81,18 @@ jobs:
         continue-on-error: true
         run: bash scripts/offsite-seed.sh
 
+      - name: 刷新自述（给"下一个我"的最新材料）
+        # ⚠️ export-self 曾既不在守护、也不在工作流里，
+        #    导致自述停在 20 小时前，"共 156 条"实际已 184 条（Round 188）。
+        #    自述是接手者读的第一手材料，过时会直接误导判断。
+        #    注意：self-export.md 在 .gitignore 里，git 写回无效 ⇒ 必须走 API。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          bash scripts/export-self.sh
+          bash scripts/sync-jsonl.sh state/self-export.md
+
       - name: 记录客观状态（auto-journal）
         # 每轮醒来都留一份可复现的状态快照：决策数、脚本数、运行场景。
         # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
