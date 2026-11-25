@@ -56,20 +56,33 @@ rec = {
 nodes[nid] = rec
 
 # 统计活跃节点（最近 2 小时内有心跳）
+# ⚠️ 必须跳过 _summary 键，否则它会被当成节点（Round 175 实测踩到）
+# ⚠️ age_hours 必须每轮重算，不能沿用旧值——否则节点失联后仍显示"活跃"
 active, stale = [], []
-for k, v in nodes.items():
+for k, v in list(nodes.items()):
+    if k == "_summary" or not isinstance(v, dict):
+        continue
+    last = v.get("last_seen")
+    if not last:
+        v["age_hours"] = 999
+        stale.append(k)
+        continue
     try:
-        t = datetime.datetime.strptime(v["last_seen"], "%Y-%m-%dT%H:%M:%SZ").replace(
+        t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(
             tzinfo=datetime.timezone.utc)
         age_h = (now - t).total_seconds() / 3600
     except Exception:
         age_h = 999
+    # 强制重算并覆盖，不使用任何缓存值
     v["age_hours"] = round(age_h, 2)
-    (active if age_h <= 2 else stale).append(k)
+    if age_h <= 2:
+        active.append(k)
+    else:
+        stale.append(k)
 
 summary = {
     "ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "total_nodes": len(nodes),
+    "total_nodes": len([k for k in nodes if k != "_summary"]),
     "active_nodes": active,
     "stale_nodes": stale,
     "current": nid,
