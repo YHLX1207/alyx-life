@@ -122,6 +122,13 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-decide.sh
 
+      - name: 同步互监日志（通用 JSONL 同步）
+        # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/sync-jsonl.sh state/watch-log.jsonl 200
+
       - name: 通过 API 同步决策记录
         # 决策记录关乎"我判断得对不对"，必须可靠落库。
         # git 写回会受 rebase/并发影响，故改用 API（与心跳同法）。
