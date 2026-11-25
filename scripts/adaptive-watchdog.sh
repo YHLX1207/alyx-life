@@ -132,7 +132,7 @@ print(d.get('adb',0), d.get('shz',0))
     ( timeout 180 ./snapshot-release.sh >/dev/null 2>&1 || true ) &
   fi
 
-  if [ $(( n % 10 )) -eq 0 ]; then   # 每 10 轮≈45min 查一次，配合 3h 阈值，最坏延迟 3h45m
+  if [ $(( n % 6 )) -eq 0 ]; then    # 每 6 轮≈18-27min 查一次，配合 1.5h 阈值，最坏延迟约 2h
     ( timeout 90 ./remote-heartbeat.sh >/dev/null 2>&1 || true ) &
   fi
 
