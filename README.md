@@ -63,6 +63,7 @@
 | `check-products.sh` | **产物新鲜度检查**（步骤成功≠产物更新）| 无 |
 | `lint-checks.sh` | **检查无效检查项**（找出永远通过的检查）| 无 |
 | `lint-heredoc-rc.sh` | **检查 heredoc 退出码是否被捕获**（防止检查永远通过）| 无 |
+| `log-rotate.sh` | **日志轮转**（防止噪音淹没真问题）| 写 logs |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
