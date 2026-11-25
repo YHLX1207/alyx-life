@@ -93,6 +93,14 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-reflect.sh
 
+      - name: 通过 API 同步自省记录
+        # 自省走 git 写回时会被 rebase 丢弃（Round 171 实测：远端记录停在 2 小时前）。
+        # 与心跳/决策一致，改用 API 同步。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/sync-reflections.sh
+
       - name: 基于自省做判断
         # 自省只产出观察，没有决策就是死数据。
         # 本步骤按规则从 reflections 得出结论与建议动作，写入 chain-decisions.jsonl。
