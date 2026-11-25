@@ -60,6 +60,8 @@ print(d.get('adb',0), d.get('shz',0))
 
   # 容器内 /proc/loadavg 不可读（proot 限制），改从设备侧取
   load=$(timeout 8 $A shell "cat /proc/loadavg 2>/dev/null" 2>/dev/null | tr -d '\r' | awk '{print $1}')
+  # 传入 adb 连续失败轮数，供 policy 区分"短断/长断"（Round 185）
+  export ALYX_ADB_STREAK="${_st:-0}"
   read -r interval reason <<< "$(decide_interval "$BASE" "$adb_ok" "$shz_ok" "$batt" "$mem" "$load")" || true
 
   # 防空转：间隔必须是有效正整数，否则退回 BASE 并记录
@@ -91,6 +93,13 @@ print(d.get('adb',0), d.get('shz',0))
     if [ "${_st:-0}" -le 5 ]; then
       log "adb_down (streak=${_st}) -> ensure-adb"
       ./ensure-adb.sh >/dev/null 2>&1; ./alert.sh "adb 通道中断，尝试自愈"
+    elif [ "${_st:-0}" -gt 1000 ]; then
+      # ⚠️ 长时间断开（>1000 轮 ≈1 天）几乎肯定是**物理断开**，
+      #    软件无法恢复。改为每 100 轮才试一次，避免无意义的日志与开销。
+      if [ $(( ${_st:-0} % 100 )) -eq 0 ]; then
+        log "adb_down (streak=${_st}) -> 长期断开，低频重试（每100轮）"
+        ./ensure-adb.sh >/dev/null 2>&1
+      fi
     elif [ $(( ${_st:-0} % 10 )) -eq 0 ]; then
       log "adb_down (streak=${_st}) -> 退避重试（每10轮）"
       ./ensure-adb.sh >/dev/null 2>&1
