@@ -47,6 +47,7 @@
 | `deploy-github.sh` | **一键部署到 GitHub**（验证token→建仓→推送→校验）| 写 .git |
 | `auto-journal.sh` | **自动状态日志**（每轮醒来记录客观快照）| 写 state |
 | `snapshot-release.sh` | **发布完整快照到 Release**（带凭据扫描）| 写 state |
+| `restore.sh` | **一键灾难恢复**（从 GitHub/paste.rs 完整重建系统）| 重建工作区 |
 | `watchdog-self.sh` | **检测心跳中断**（cron 停用/跳过时告警）| 写 state |
 | `trigger-remote.sh` | **远程唤醒 GitHub 上的自己**（cron 失效时兜底）| 无 |
 | `remote-heartbeat.sh` | 检查远端心跳，陈旧则自动触发 | 无 |
