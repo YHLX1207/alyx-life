@@ -2,8 +2,8 @@
  "actions": {
   "id": "actions",
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-25T19:43:05Z",
-  "beats": 8,
+  "last_seen": "2026-11-25T20:14:03Z",
+  "beats": 9,
   "kind": "actions",
   "age_hours": 0.0
  },
@@ -13,10 +13,10 @@
   "last_seen": "2026-11-25T19:51:39Z",
   "beats": 6,
   "kind": "device",
-  "age_hours": 0.0
+  "age_hours": 0.37
  },
  "_summary": {
-  "ts": "2026-11-25T19:51:39Z",
+  "ts": "2026-11-25T20:14:03Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions",
