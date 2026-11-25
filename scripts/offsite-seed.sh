@@ -104,43 +104,57 @@ if [ -n "$CODE_URL" ]; then
     "$STAMP" "$CODE_URL" "$CODE_N" >> ../state/offsite-seed.jsonl
 fi
 
-# ---------- 决策史分段上传 ----------
-# 决策史 233K，xz 压缩后 87K，base64 变 116K —— 超过 paste.rs 限制。
-# 所以按行切成两段分别上传（D140 实测每段约 60K，安全）。
+# ---------- 决策史动态分段上传 ----------
+# ⚠️ 固定 2 段不够（Round 196 实测）：决策史已 336KB，
+#    单段 base64 达 227KB，远超 paste.rs 限制（约 75-100KB）。
+#    ⇒ 按**字节数**动态决定段数，每段控制在 ~50KB 原文。
+#
 # 决策史是整个系统最有价值的资产：它是"我为什么是现在这样"的全部记录。
 DEC_URLS=""
 if [ -f ../state/decisions.md ]; then
-  _total=$(wc -l < ../state/decisions.md)
-  _mid=$(( _total / 2 ))
+  _total_bytes=$(wc -c < ../state/decisions.md)
+  _seg_bytes=$(( 50 * 1024 ))                     # 每段约 50KB 原文
+  _nseg=$(( (_total_bytes + _seg_bytes - 1) / _seg_bytes ))
+  [ "$_nseg" -lt 1 ] && _nseg=1
+  _lines_per=$(( ( $(wc -l < ../state/decisions.md) + _nseg - 1 ) / _nseg ))
+
+  echo "  决策史 $(( _total_bytes / 1024 ))KB → 分 $_nseg 段（每段约 $(( _lines_per )) 行）"
   : > "$TMP/dec.urls"
-  for _n in 1 2; do
-    if [ "$_n" = "1" ]; then
-      head -n "$_mid" ../state/decisions.md > "$TMP/dec$_n.md"
-    else
-      tail -n +$(( _mid + 1 )) ../state/decisions.md > "$TMP/dec$_n.md"
-    fi
+
+  for _n in $(seq 1 "$_nseg"); do
+    _from=$(( (_n - 1) * _lines_per + 1 ))
+    _to=$(( _n * _lines_per ))
+    sed -n "${_from},${_to}p" ../state/decisions.md > "$TMP/dec$_n.md"
+    [ -s "$TMP/dec$_n.md" ] || continue
+
     tar cJf "$TMP/dec$_n.tar.xz" -C "$TMP" "dec$_n.md" 2>/dev/null || continue
     _sum=$(md5sum "$TMP/dec$_n.tar.xz" | cut -d' ' -f1)
     base64 -w0 "$TMP/dec$_n.tar.xz" > "$TMP/dec$_n.b64"
-    _u=$(timeout 90 curl -s --max-time 85 --data-binary @"$TMP/dec$_n.b64" https://paste.rs/ 2>/dev/null | tr -d '\r\n')
+    _b64sz=$(wc -c < "$TMP/dec$_n.b64")
+
+    if [ "$_b64sz" -gt 90000 ]; then
+      echo "  ⚠ 决策史第 $_n 段过大（$(( _b64sz / 1024 ))KB），跳过"
+      continue
+    fi
+
+    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$TMP/dec$_n.b64" https://paste.rs/ 2>/dev/null | tr -d '\r\n')
     case "$_u" in
       https://paste.rs/*)
-        timeout 90 curl -s --max-time 85 "$_u" > "$TMP/dec${_n}_back.b64" 2>/dev/null
+        timeout 120 curl -s --max-time 110 "$_u" > "$TMP/dec${_n}_back.b64" 2>/dev/null
         base64 -d "$TMP/dec${_n}_back.b64" > "$TMP/dec${_n}_back.xz" 2>/dev/null
         if [ "$(md5sum "$TMP/dec${_n}_back.xz" | cut -d' ' -f1)" = "$_sum" ]; then
           echo "$_u" >> "$TMP/dec.urls"
-          echo "  ✓ 决策史第 $_n 段: $_u"
+          echo "  ✓ 决策史第 $_n/$_nseg 段: $_u（$(( _b64sz / 1024 ))KB）"
         else
           echo "  ✗ 决策史第 $_n 段回读校验失败"
         fi
         ;;
-      *) echo "  ⚠ 决策史第 $_n 段上传失败" ;;
+      *) echo "  ⚠ 决策史第 $_n 段上传失败（$(( _b64sz / 1024 ))KB）" ;;
     esac
   done
   DEC_URLS=$(paste -sd, "$TMP/dec.urls" 2>/dev/null)
-  # 也记进 JSON，使其随仓库一起保存（否则恢复时找不到这些 URL）
   if [ -n "$DEC_URLS" ]; then
-    printf '{"ts":"%s","urls":"%s","kind":"decisions"}\n' "$STAMP" "$DEC_URLS" \
+    printf '{"ts":"%s","urls":"%s","kind":"decisions","segments":%d}\n' "$STAMP" "$DEC_URLS" "$(echo "$DEC_URLS" | tr ',' '\n' | wc -l)" \
       >> ../state/offsite-seed.jsonl
   fi
 fi
