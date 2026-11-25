@@ -16,6 +16,20 @@ set -uo pipefail
 # 因此 cwd 是 scripts/，所有对 state/ notes/ 的引用都要带 ../
 cd "$(dirname "$0")"
 
+# ⚠️ 自保护（Round 191）：恢复过程会用快照里的文件覆盖 scripts/，
+#    包括本脚本自身。bash 是边读边解析的，文件被替换后后续行会错乱
+#    （实测报 "syntax error near unexpected token `then'"）。
+#    ⇒ 把自己复制到临时目录，改为从副本继续执行。
+if [ "${ALYX_RESTORE_GUARDED:-0}" != "1" ]; then
+  _SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  _GUARD="/tmp/.restore-guard-$$.sh"
+  if [ -f "$_SELF" ] && cp "$_SELF" "$_GUARD" 2>/dev/null; then
+    ALYX_RESTORE_GUARDED=1 ALYX_RESTORE_CTX="$(pwd)" exec bash "$_GUARD" "$@"
+  fi
+fi
+[ "${ALYX_RESTORE_GUARDED:-0}" = "1" ] && [ -n "${ALYX_RESTORE_CTX:-}" ] && cd "$ALYX_RESTORE_CTX"
+
+
 DEST="${1:-auto}"
 SHOULD_RESTORE_A=0; SHOULD_RESTORE_B=0
 [ "$DEST" = "auto" ] && { SHOULD_RESTORE_A=1; SHOULD_RESTORE_B=1; }
@@ -32,7 +46,14 @@ fail(){ printf "  ✗ %s\n" "$*"; }
 #    硬编码会永远指向某一天的旧快照（Round 190 实测：指向 11-24 而实际是 11-25，
 #    少了 30 条决策、12 个脚本）。
 #    ⇒ 用 GitHub API 查询**最新** release 的下载地址。
-A_URL=${ALYX_SNAPSHOT_URL:-}
+# 优先用固定 URL（latest tag 永不变化，且每轮覆盖）
+# 回退到 API 查询（兼容可能存在的日期 tag）
+A_URL=${ALYX_SNAPSHOT_URL:-https://github.com/YHLX1207/alyx-life/releases/download/latest/alyx-full.tar.xz}
+
+# 若固定 URL 不可用，再查 API
+if ! timeout 20 curl -sfL -o /dev/null -I "$A_URL" 2>/dev/null; then
+  A_URL=""
+fi
 
 if [ -z "$A_URL" ]; then
   echo "  查询最新快照地址…"
