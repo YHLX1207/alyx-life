@@ -23,7 +23,7 @@ MAX_AGE_WATCHLOG=120     # 互监：每 20 轮 ≈1h
 
 _rc=0
 python3 - "$TOKEN" "$REPO" <<'PY' || _rc=$?
-import sys, json, base64, urllib.request, urllib.error, datetime, os
+import sys, json, base64, urllib.request, urllib.error, datetime, os, time
 
 token, repo = sys.argv[1], sys.argv[2]
 now = datetime.datetime.now(datetime.timezone.utc)
@@ -48,16 +48,21 @@ CHECKS = [
 
 def fetch(remote_path):
     if token:
-        try:
-            req = urllib.request.Request(
-                f"https://api.github.com/repos/{repo}/contents/{remote_path}",
-                headers={"Authorization": f"token {token}", "User-Agent": "alyx",
-                         "Accept": "application/vnd.github+json", "Connection": "close"})
-            d = json.loads(urllib.request.urlopen(req, timeout=25).read())
-            raw = base64.b64decode(d.get("content", "")).decode("utf-8", "ignore")
-            return raw, "remote"
-        except Exception:
-            pass
+        # ⚠️ 重试 2 次（Round 203）：GitHub API 偶发抖动会让抓取失败，
+        #    而失败会被判为"产物不存在"⇒ 假失败。重试能消除这类噪音。
+        for _attempt in range(2):
+            try:
+                req = urllib.request.Request(
+                    f"https://api.github.com/repos/{repo}/contents/{remote_path}",
+                    headers={"Authorization": f"token {token}", "User-Agent": "alyx",
+                             "Accept": "application/vnd.github+json", "Connection": "close"})
+                d = json.loads(urllib.request.urlopen(req, timeout=25).read())
+                raw = base64.b64decode(d.get("content", "")).decode("utf-8", "ignore")
+                return raw, "remote"
+            except Exception:
+                if _attempt == 0:
+                    time.sleep(1.5)
+                continue
     local = os.path.join("..", remote_path)
     if os.path.exists(local):
         return open(local, encoding="utf-8").read(), "local"
