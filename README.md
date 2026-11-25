@@ -65,6 +65,7 @@
 | `lint-heredoc-rc.sh` | **检查 heredoc 退出码是否被捕获**（防止检查永远通过）| 无 |
 | `lint-exitcode.sh` | **检查退出码缺陷**（出错后仍返回 0）| 无 |
 | `test-disaster-recovery.sh` | **灾难恢复演练**（从 GitHub 完整重建）| 临时目录 |
+| `check-chains.sh` | **两条备份链一致性检查**（URL 活着≠内容对）| 无 |
 | `log-rotate.sh` | **日志轮转**（防止噪音淹没真问题）| 写 logs |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
