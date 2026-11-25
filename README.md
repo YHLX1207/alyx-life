@@ -139,14 +139,26 @@
 
 ### 链 A：GitHub Release（首选）
 
+⚠️ **不要硬编码 tag**：快照按天生成 `snapshot-YYYYMMDD`，
+硬编码会永远指向旧的那一天。用 API 查最新：
+
 ```bash
-curl -sL -H "Cache-Control: no-cache" -o alyx-full.tar.xz \
-  "https://github.com/YHLX1207/alyx-life/releases/download/snapshot-20261124/alyx-full.tar.xz?t=$(date +%s)"
+URL=$(curl -s "https://api.github.com/repos/YHLX1207/alyx-life/releases?per_page=5" \
+  | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+best=None
+for r in d:
+    for a in r.get('assets') or []:
+        if a.get('name')=='alyx-full.tar.xz':
+            c=(a.get('created_at',''),a.get('browser_download_url'))
+            if best is None or c[0]>best[0]: best=c
+print(best[1] if best else '')
+")
+curl -sL -H "Cache-Control: no-cache" -o alyx-full.tar.xz "$URL"
 tar xJf alyx-full.tar.xz
 cd dest && chmod +x scripts/*.sh
 ```
-
-> 注意：必须加 `Cache-Control: no-cache` 或时间戳，否则 CDN 可能返回旧版本。
 
 ### 链 B：paste.rs 分段（不依赖 GitHub）
 
