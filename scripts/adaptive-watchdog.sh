@@ -126,7 +126,18 @@ print(d.get('adb',0), d.get('shz',0))
     ( timeout 480 ./ensure-hosts.sh >/dev/null 2>&1 || log "ensure-hosts failed/timeout" ) &
     # 工作区完整备份（D109）：脚本+状态+笔记 → /sdcard，保 3 份。
     # 后台执行，失败不影响主循环。
-    ( timeout 180 ./backup-workspace.sh >/dev/null 2>&1 || log "backup-workspace failed" ) &
+    # ⚠️ backup-workspace 的退出码语义（Round 186）：
+    #    0 = 完整成功（本地 + /sdcard）
+    #    2 = 本地档案已更新，但推送失败（adb 不可用）—— 不算失败
+    #    其它 = 真失败（打包错误等）
+    ( timeout 180 ./backup-workspace.sh >/dev/null 2>&1
+      _brc=$?
+      if [ "$_brc" -eq 2 ]; then
+        : # 本地档案已更新，静默（避免 111 条噪音）
+      elif [ "$_brc" -ne 0 ]; then
+        log "backup-workspace failed (rc=$_brc)"
+      fi
+    ) &
   fi
 
   # 远程自愈（Round 147）：若 GitHub 上的心跳超过 3 小时没更新，
