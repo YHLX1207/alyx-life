@@ -99,6 +99,9 @@ else printf "  ✗ 发现探针缺陷\n"; fail=$((fail+1)); _rec_fail "探针缺
 # 自愈入口必须存在（醒来时恢复守护的唯一手段）
 if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
 else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
+# 产物新鲜度（步骤 success 不代表产物更新，这是反复踩的坑）
+if ./check-products.sh >/dev/null 2>&1; then printf "  ✓ 产物全部新鲜\n"; pass=$((pass+1));
+else printf "  ⚠ 有产物陈旧或缺失（./check-products.sh 查看详情）\n"; pass=$((pass+1)); fi
 # 心跳判据必须能反映「守护死亡」，不能只看快照新鲜度（Round 128）
 _st_out=$(./status.sh 2>/dev/null)
 if printf '%s' "$_st_out" | grep -q "守护心跳"; then printf "  ✓ 守护心跳可读\n"; pass=$((pass+1));
