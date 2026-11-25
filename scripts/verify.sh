@@ -73,8 +73,15 @@ for l in reversed(sys.stdin.read().strip().split(chr(10))):
     v=d.get('battery_level')
     if v and str(v).isdigit(): print(v); break
 " 2>/dev/null)
-if [ -n "$_bv" ]; then printf "  ✓ 电量可读 (%s%%，来自快照)\n" "$_bv"; pass=$((pass+1));
-else if [ "$_ADB_OK" -ne 1 ]; then printf "  ⚠ 电量检查跳过（adb 不可用，快照无法更新）\n"; pass=$((pass+1)); else printf "  ✗ 快照中无电量数据\n"; fail=$((fail+1)); _rec_fail "快照无电量"; fi; fi
+if [ -z "$_bv" ]; then
+  if [ "$_ADB_OK" -ne 1 ]; then
+    printf "  ⚠ 电量检查跳过（adb 不可用，快照无法更新）\n"; pass=$((pass+1))
+  else
+    printf "  ✗ 快照中无电量数据\n"; fail=$((fail+1)); _rec_fail "快照无电量"
+  fi
+else
+  printf "  ✓ 电量可读 (%s%%，来自快照)\n" "$_bv"; pass=$((pass+1))
+fi
 t "ui.snapshot 可读"   bash -c "$P call ui.snapshot 2>/dev/null | grep -q '\"nodes\"'"
 
 echo "== 策略逻辑（单元测试）=="
@@ -96,6 +103,9 @@ if ./lint-embedded-py.sh >/dev/null 2>&1; then printf "  ✓ 内嵌 Python 语�
 else printf "  ✗ 内嵌 Python 语法错误\n"; fail=$((fail+1)); _rec_fail "内嵌 Python 语法错误"; fi
 if ./lint-probe.sh >/dev/null 2>&1; then printf "  ✓ 探针质量检查通过\n"; pass=$((pass+1));
 else printf "  ✗ 发现探针缺陷\n"; fail=$((fail+1)); _rec_fail "探针缺陷"; fi
+# 检查器质量：不能有"结构上必然通过"的检查项（Round 182）
+if ./lint-checks.sh >/dev/null 2>&1; then printf "  ✓ 无无效检查项\n"; pass=$((pass+1));
+else printf "  ✗ 存在结构上必然通过的检查\n"; fail=$((fail+1)); _rec_fail "无效检查项"; fi
 # 自愈入口必须存在（醒来时恢复守护的唯一手段）
 if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
 else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
