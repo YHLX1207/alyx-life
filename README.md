@@ -62,6 +62,7 @@
 | `sync-jsonl.sh` | **通用 JSONL 同步**（按 ts 去重，防 rebase 丢弃）| 无 |
 | `check-products.sh` | **产物新鲜度检查**（步骤成功≠产物更新）| 无 |
 | `lint-checks.sh` | **检查无效检查项**（找出永远通过的检查）| 无 |
+| `lint-heredoc-rc.sh` | **检查 heredoc 退出码是否被捕获**（防止检查永远通过）| 无 |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
