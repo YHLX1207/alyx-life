@@ -64,6 +64,13 @@ jobs:
         # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
         run: bash scripts/auto-journal.sh
 
+      - name: 自省（从历史数据提炼观察）
+        # 链若只做"维持"（自检/心跳/快照），就只是活着，没有成长。
+        # 本步骤用可复现规则从 journal/decisions 提炼趋势与异常，写入 reflections.jsonl。
+        # 不依赖 LLM，不编造——每一条都来自实际数据。
+        continue-on-error: true
+        run: bash scripts/chain-reflect.sh
+
       - name: 通过 API 写入心跳（不依赖 git）
         # ⚠️ 写回状态的 git rebase 会重置本地修改，导致心跳丢失（Round 158 实测）。
         #    改为直接用 Contents API 追加，绕开 git，心跳一定可见。
