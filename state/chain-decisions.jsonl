@@ -1,4 +1,2 @@
 {"ts": "2026-11-25T13:05:37Z", "overall": "ok", "findings": [{"severity": "ok", "finding": "决策在增长", "evidence": "158 → 160", "action": "无需动作"}]}
-{"ts": "2026-11-25T13:06:01Z", "overall": "high", "findings": [{"severity": "high", "finding": "存在心跳中断", "evidence": "最大间隔 300 分钟，中位 30.8", "action": "查该时段运行记录，确认是否为取消/失败"}, {"severity": "ok", "finding": "决策在增长", "evidence": "158 → 160", "action": "无需动作"}]}
-{"ts": "2026-11-25T13:06:02Z", "overall": "critical", "findings": [{"severity": "critical", "finding": "工作流心跳完全缺失", "evidence": "总计 52 条，github-actions 为 0", "action": "检查 API 心跳步骤是否失败（timeout 参数位置等）"}, {"severity": "high", "finding": "存在心跳中断", "evidence": "最大间隔 300 分钟，中位 30.8", "action": "查该时段运行记录，确认是否为取消/失败"}, {"severity": "ok", "finding": "决策在增长", "evidence": "158 → 160", "action": "无需动作"}]}
 {"ts": "2026-11-25T13:06:02Z", "overall": "ok", "findings": [{"severity": "ok", "finding": "决策在增长", "evidence": "158 → 160", "action": "无需动作"}]}
