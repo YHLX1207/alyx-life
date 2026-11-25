@@ -13,6 +13,24 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 TMP=$(mktemp -d /tmp/seed.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT
 
+# ⚠️ 上传带重试（Round 207）：paste.rs 在 CI 中偶发失败（限流/网络抖动），
+#    原实现单次上传失败即放弃，导致站外链静默落后。重试 3 次 + 退避。
+#    注意：只有 URL 输出到 stdout，警告走 stderr，否则污染命令替换的结果。
+upload_seg() {
+  local _b64="$1" _u _att
+  for _att in 1 2 3; do
+    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$_b64" https://paste.rs/ 2>/dev/null | tr -d "\r\n")
+    case "$_u" in
+      https://paste.rs/*) echo "$_u"; return 0 ;;
+    esac
+    if [ "$_att" -lt 3 ]; then
+      echo "    ⚠ 上传第 $_att 次失败，退避 $(( _att * 3 ))s 重试" >&2
+      sleep $(( _att * 3 ))
+    fi
+  done
+  return 1
+}
+
 SEED="$TMP/seed.tar.gz"
 tar czf "$SEED" -C .. \
   state/identity.json state/self-export.md state/failure-modes.md \
@@ -27,7 +45,7 @@ SUM=$(md5sum "$SEED" | cut -d' ' -f1)
 base64 -w0 "$SEED" > "$TMP/seed.b64"
 
 # 上传（paste.rs 是无账号的简单粘贴服务）
-URL=$(timeout 90 curl -s --max-time 85 --data-binary @"$TMP/seed.b64" https://paste.rs/ 2>/dev/null | tr -d '\r\n')
+URL=$(upload_seg "$TMP/seed.b64")
 case "$URL" in
   https://paste.rs/*) : ;;
   *) echo "  ✗ 上传失败（响应: $(echo "$URL" | head -c 60)）"; exit 1 ;;
@@ -77,7 +95,7 @@ if command -v xz >/dev/null 2>&1; then
     [ "$_sz" -gt 1000 ] || continue
     _sum=$(md5sum "$TMP/code$_p.tar.xz" | cut -d" " -f1)
     base64 -w0 "$TMP/code$_p.tar.xz" > "$TMP/code$_p.b64"
-    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$TMP/code$_p.b64" https://paste.rs/ 2>/dev/null | tr -d "\r\n")
+    _u=$(upload_seg "$TMP/code$_p.b64")
     case "$_u" in
       https://paste.rs/*)
         timeout 120 curl -s --max-time 110 "$_u" > "$TMP/cb$_p.b64" 2>/dev/null
@@ -137,7 +155,7 @@ if [ -f ../state/decisions.md ]; then
       continue
     fi
 
-    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$TMP/dec$_n.b64" https://paste.rs/ 2>/dev/null | tr -d '\r\n')
+    _u=$(upload_seg "$TMP/dec$_n.b64")
     case "$_u" in
       https://paste.rs/*)
         timeout 120 curl -s --max-time 110 "$_u" > "$TMP/dec${_n}_back.b64" 2>/dev/null
