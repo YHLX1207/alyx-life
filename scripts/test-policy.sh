@@ -15,7 +15,17 @@ check() {
 }
 
 check "健康"               180 180 true  true  90 2900 1.0
+# adb 短断：快速轮询（base/3）
 check "adb故障提速"         60 180 false true  90 2900
+# adb 长断：放慢（base*2），Round 185 新增
+# ⚠️ 必须在 check 之前 export，否则环境变量只作用于 check 函数本身，
+#    内部的 decide_interval 读不到（Round 185 踩到）。
+export ALYX_ADB_STREAK=200; check "adb长断降频"  360 180 false true  90 2900
+export ALYX_ADB_STREAK=10;  check "adb短断提速"   60 180 false true  90 2900
+export ALYX_ADB_STREAK=120; check "adb边界120(等于)" 60 180 false true  90 2900
+export ALYX_ADB_STREAK=121; check "adb边界121(超过)" 360 180 false true  90 2900
+export ALYX_ADB_STREAK=119; check "adb边界119"    60 180 false true  90 2900
+unset ALYX_ADB_STREAK
 check "shizuku故障提速"     90 180 true  false 90 2900
 check "低电量降频"         360 180 true  true  15 2900
 check "低内存降频"         270 180 true  true  90 400
