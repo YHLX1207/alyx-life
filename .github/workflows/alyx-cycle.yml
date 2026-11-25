@@ -188,6 +188,16 @@ jobs:
               print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
           PYBEAT
 
+      - name: 产物落库校验（检测静默失败）
+        # ⚠️ 同步步骤都是 continue-on-error，token 失效时每个同步会**静默失败**，
+        #    链继续显示全部成功，但数据实际已停更（Round 202 发现）。
+        #    本步骤读取**远端**产物，若任一项陈旧则明确标记失败（但继续，不打断链）。
+        #    步骤显示 failure = 有东西没落库，需排查；链本身仍由自我唤醒延续。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/check-products.sh
+
       - name: 发布完整快照到 Release
       # 让"完整可恢复的那一份"始终有稳定 URL，不依赖某次 commit
       # CI 环境无本地 token，需要用 GitHub 自动提供的 GITHUB_TOKEN
@@ -226,9 +236,9 @@ jobs:
           echo "⚠ 推送失败，本轮状态未写回（链继续，下轮会重试）"
 
       - name: 自我唤醒（链式循环，不依赖 cron）
-      # ⚠️ GitHub cron 在本仓库实测从不触发（已验证 5 个触发点，含一次性精确时刻）。
+        # ⚠️ cron 实测会触发（Round 201 核实历史 4 次：#1 成功，#37/#38/#57 被并发取消）。
       #    解法：每次运行结束时自我 dispatch，形成链。
-      #    只要 GitHub Actions 可用，链就不会断 —— 这就是"无人唤醒"的答案。
+        #    本步骤是主唤醒路径；cron 与 device 守护是另外两条兜底路径。
       #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
         continue-on-error: true
         env:
