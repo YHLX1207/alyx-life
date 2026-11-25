@@ -109,6 +109,9 @@ jobs:
       - name: 双链一致性检查
       # paste.rs 独立链曾落后 15 脚本 / 42 决策而无人发现（Round 196）。
       # 每轮对比两条链，防止静默落后。并发下载后仅需 5 秒。
+      # ⚠️ 注意：paste.rs 对 CI 不可达（offsite-seed 在 CI 持续失败，Round 208），
+      #    本步骤在 CI 里下载不到任何段，只能报"无法验证"。
+      #    **实际验证由守护执行**（每 20 轮，见 adaptive-watchdog.sh）。
         continue-on-error: true
         run: bash scripts/check-chains.sh
 
