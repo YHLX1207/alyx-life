@@ -44,6 +44,10 @@ CHECKS = [
     # decisions.md 是最重要的成长记录（185 条）。虽靠 git 写回目前正常，
     # 但一旦被 rebase 丢弃不会有任何信号（Round 189）。
     ("decisions",       "state/decisions.md",          "决策史", 4320),
+    # ⚠️ 站外种子（paste.rs）是独立备份链。CI 中的 offsite-seed 曾持续失败
+    #    （重试未能解决，属非瞬时原因），而步骤是 continue-on-error，失败不可见。
+    #    纳入检查：记录陈旧即说明 CI 的刷新没成功（Round 208）。
+    ("offsite-seed",    "state/offsite-seed.jsonl",    "站外种子", 180),
 ]
 
 def fetch(remote_path):
