@@ -42,6 +42,44 @@ if not os.path.exists(LOCAL):
     print(f"  本地无 {rel_path}，跳过")
     sys.exit(0)
 
+# ⚠️ 非 .jsonl 文件（如 .md）按**整文件覆盖**处理，不做 ts 去重（Round 188）
+_is_jsonl = rel_path.endswith(".jsonl")
+
+if not _is_jsonl:
+    local_content = open(LOCAL, encoding="utf-8").read()
+    try:
+        req = urllib.request.Request(f"{API}/contents/{rel_path}", headers=hdr)
+        d = json.loads(urllib.request.urlopen(req, timeout=25).read())
+        remote_content = base64.b64decode(d.get("content", "")).decode("utf-8", "ignore")
+        sha = d.get("sha")
+    except urllib.error.HTTPError as e:
+        sha = None
+        remote_content = ""
+        if e.code != 404:
+            print(f"  读取失败 HTTP {e.code}")
+            sys.exit(1)
+    except Exception:
+        sha = None
+        remote_content = ""
+    if local_content == remote_content:
+        print(f"  {rel_path}: 内容一致，无需同步")
+        sys.exit(0)
+    payload = {"message": f"sync {rel_path}",
+               "content": base64.b64encode(local_content.encode()).decode(),
+               "branch": "main"}
+    if sha:
+        payload["sha"] = sha
+    try:
+        req = urllib.request.Request(f"{API}/contents/{rel_path}",
+                                     data=json.dumps(payload).encode(), method="PUT",
+                                     headers={**hdr, "Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=30)
+        print(f"  ✓ {rel_path}: 整文件已同步")
+        sys.exit(0)
+    except Exception as e:
+        print(f"  写入失败: {str(e)[:60]}")
+        sys.exit(1)
+
 local_lines = [l.strip() for l in open(LOCAL, encoding="utf-8") if l.strip()]
 if not local_lines:
     print("  本地为空，跳过")
