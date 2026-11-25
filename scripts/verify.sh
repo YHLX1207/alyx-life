@@ -108,6 +108,8 @@ if ./lint-checks.sh >/dev/null 2>&1; then printf "  ✓ 无无效检查项\n"; p
 else printf "  ✗ 存在结构上必然通过的检查\n"; fail=$((fail+1)); _rec_fail "无效检查项"; fi
 if ./lint-heredoc-rc.sh >/dev/null 2>&1; then printf "  ✓ heredoc 退出码已捕获\n"; pass=$((pass+1));
 else printf "  ✗ heredoc 退出码未捕获（检查会永远通过）\n"; fail=$((fail+1)); _rec_fail "heredoc 退出码未捕获"; fi
+if ./lint-exitcode.sh >/dev/null 2>&1; then printf "  ✓ 退出码无缺陷\n"; pass=$((pass+1));
+else printf "  ✗ 有脚本退出码可疑（./lint-exitcode.sh 查看）\n"; fail=$((fail+1)); _rec_fail "退出码可疑"; fi
 # 自愈入口必须存在（醒来时恢复守护的唯一手段）
 if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
 else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
