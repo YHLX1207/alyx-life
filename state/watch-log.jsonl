@@ -6,3 +6,4 @@
 {"ts": "2026-11-25T18:09:59Z", "me": "actions", "role": "unknown", "note": "无法判定", "others": [{"id": "device-localhost", "age_h": 2.35, "beats": 1}], "takeover_needed": false}
 {"ts": "2026-11-25T18:40:56Z", "me": "actions", "role": "unknown", "note": "无法判定", "others": [{"id": "device-localhost", "age_h": 2.87, "beats": 1}], "takeover_needed": false}
 {"ts": "2026-11-25T19:11:56Z", "me": "actions", "role": "primary", "note": "所有同伴失联（device-localhost），我接管", "others": [{"id": "device-localhost", "age_h": 3.38, "beats": 1}], "takeover_needed": true}
+{"ts": "2026-11-25T19:43:06Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.07, "beats": 4}], "takeover_needed": false}
