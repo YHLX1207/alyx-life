@@ -34,6 +34,9 @@ CHECKS = [
     ("chain-decisions", "state/chain-decisions.jsonl", "决策",   45),
     ("watch-log",       "state/watch-log.jsonl",       "互监",  120),
     ("nodes",           "state/nodes.json",            "节点",  120),
+    # ⚠️ 自述曾静默过时 20 小时（Round 188）。它虽不是"每轮必变"，
+    #    但一旦过时就会误导接手者，必须纳入检查。
+    ("self-export",     "state/self-export.md",        "自述",  120),
 ]
 
 def fetch(remote_path):
@@ -54,7 +57,12 @@ def fetch(remote_path):
     return None, None
 
 def newest_ts(raw, name):
-    """从 jsonl 或 json 中取最新 ts"""
+    """从 jsonl / json / markdown 中取最新时间戳"""
+    if name == "self-export":
+        # markdown 里找 "导出时间：YYYY-MM-DDTHH:MM:SSZ"
+        import re as _re
+        m = _re.search(r"导出时间[：:]\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)", raw)
+        return m.group(1) if m else None
     if name == "nodes":
         try:
             d = json.loads(raw)
@@ -92,7 +100,9 @@ for name, path, label, maxage in CHECKS:
         bad.append((label, "产物不存在"))
         continue
 
-    if name == "nodes":
+    if name == "self-export":
+        count = len(raw.splitlines())
+    elif name == "nodes":
         count = len([k for k in json.loads(raw) if k != "_summary"])
     else:
         count = len([l for l in raw.strip().split("\n") if l.strip()])
