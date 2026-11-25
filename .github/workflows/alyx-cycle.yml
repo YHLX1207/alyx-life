@@ -102,56 +102,11 @@ jobs:
       - name: 通过 API 同步决策记录
         # 决策记录关乎"我判断得对不对"，必须可靠落库。
         # git 写回会受 rebase/并发影响，故改用 API（与心跳同法）。
+        # 逻辑独立在 scripts/sync-decisions.sh，避免 workflow 内嵌 Python 的转义问题。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-        run: |
-          python3 - <<'PYDEC'
-          import json, base64, urllib.request, os, time
-          token = os.environ["GH_TOKEN"]
-          repo = os.environ["GITHUB_REPOSITORY"]
-          API = f"https://api.github.com/repos/{repo}"
-          hdr = {"Authorization": f"token {token}", "User-Agent": "alyx",
-                 "Accept": "application/vnd.github+json", "Connection": "close"}
-          path = "state/chain-decisions.jsonl"
-          try:
-              local = open(path, encoding="utf-8").read().rstrip("
-")
-              if not local:
-                  print("  本地无决策记录，跳过")
-                  raise SystemExit(0)
-              local_lines = [l for l in local.split("
-") if l.strip()]
-              # 读远端现有
-              try:
-                  d = json.loads(urllib.request.urlopen(
-                      urllib.request.Request(f"{API}/contents/{path}", headers=hdr), timeout=25).read())
-                  remote_lines = [l for l in base64.b64decode(d.get("content","")).decode().strip().split("
-") if l.strip()]
-                  sha = d.get("sha")
-              except Exception:
-                  remote_lines, sha = [], None
-              # 合并去重（按 ts）
-              seen = {json.loads(l).get("ts") for l in remote_lines if l.strip()}
-              added = [l for l in local_lines if json.loads(l).get("ts") not in seen]
-              if not added:
-                  print("  无新记录需同步")
-                  raise SystemExit(0)
-              merged = "
-".join(remote_lines + added) + "
-"
-              payload = {"message": f"decisions sync (+{len(added)})",
-                         "content": base64.b64encode(merged.encode()).decode(),
-                         "branch": "main"}
-              if sha:
-                  payload["sha"] = sha
-              urllib.request.urlopen(urllib.request.Request(
-                  f"{API}/contents/{path}", data=json.dumps(payload).encode(), method="PUT",
-                  headers={**hdr, "Content-Type": "application/json"}), timeout=30)
-              print(f"  ✓ 已同步 {len(added)} 条决策记录")
-          except Exception as e:
-              print(f"  ✗ 同步失败: {str(e)[:80]}")
-          PYDEC
+        run: bash scripts/sync-decisions.sh
 
       - name: 通过 API 写入心跳（不依赖 git）
         # ⚠️ 写回状态的 git rebase 会重置本地修改，导致心跳丢失（Round 158 实测）。
