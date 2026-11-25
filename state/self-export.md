@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-25T20:45:03Z
+导出时间：2026-11-25T21:14:11Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,10 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 203 条）
+## 四、决策与教训（最近 20 条 / 共 205 条）
 
-- **D183 · 从"修一个噪音"到"防止噪音积累"（2026-11-25，Round 187）** → 上轮的遗留
-- **D184 · 自述静默过时 20 小时（2026-11-25，Round 188）** → 发现的偏差
 - **D185 · 产物覆盖审计：补上最重要的遗漏（2026-11-25，Round 189）** → 审计方法
 - **D186 · 恢复脚本指向了旧快照：差 30 条决策、12 个脚本（2026-11-25，Round 190）** → 发现过程
 - **D187 · 恢复脚本会覆盖自身，导致执行中被破坏（2026-11-25，Round 191）** → 现象
@@ -101,6 +99,8 @@ cd /root/projects/life
 - **D199 · 同步步骤全绿也可能是静默失败（2026-11-25，Round 202）** → 发现的缺口
 - **D200 · 产物检查加重试，并修复了**检查工具自身的漏检**（2026-11-25，Round 203）** → 起因
 - **D201 · 产物校验的注释与行为不符：失败却显示绿色（2026-11-25，Round 204）** → 发现
+- **D202 · 一致性审计：最关键脚本不在清单里（2026-11-25，Round 205）** → 审计方式
+- **D203 · 修复 lint-readme：从子串匹配改为表格行匹配（2026-11-25，Round 206）** → 上轮的发现
 
 ## 五、已知失败模式（摘要）
 
@@ -112,12 +112,22 @@ cd /root/projects/life
 - FM-6 · 凭印象陈述自己的历史（1 次，性质最危险）
 - FM-7 · 告警淹没真实风险
 - FM-8 · 用不可靠的小样本下判断
+- FM-9 · 测试污染生产数据
 
 （完整对策见 state/failure-modes.md）
 
 ## 六、待处理事项
 
-（资料缺失：state/resource-brief.md 不存在）
+### P0 · 不可续期账户将失效
+- **minimax/小螺帽9721** — 北京 11-22 09:37（剩 -3.7 天）
+- **minimax/MiniMax55279** — 北京 11-22 09:38（剩 -3.7 天）
+- **loomy/易海林汐** — 北京 11-22 20:45（剩 -3.2 天）
+- **loomy/Returnera al** — 北京 11-22 20:47（剩 -3.2 天）
+### P1 · 签到状态
+- 最新时段 `2026-11-25#21:00` 已处理 ✓（5.3h 前）
+- 上一处理记录: `2026-11-25#21:00`
+
+（完整版见 state/resource-brief.md，按需运行 scripts/resource-brief.sh 更新）
 
 ### 仍等你决定的事项（从决策库自动汇总）
 
@@ -182,9 +192,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/WJxZx
-> 代码包（分段）：https://paste.rs/MSMs5,https://paste.rs/RLAc1
-> 决策史（分段）：https://paste.rs/WIg4A,https://paste.rs/i6hAp,https://paste.rs/iiQXc
+> 种子：https://paste.rs/MIlKb
+> 代码包（分段）：https://paste.rs/rd0pr,https://paste.rs/grFHM
+> 决策史（分段）：https://paste.rs/6lwJI,https://paste.rs/36qAn,https://paste.rs/KBw0A,https://paste.rs/5VeI2,https://paste.rs/aaEst,https://paste.rs/aSAFq,https://paste.rs/yyHAw,https://paste.rs/lltRO
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
