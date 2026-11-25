@@ -44,3 +44,29 @@ tar xzf seed.tar.gz -C /root/projects/life/
 
 ---
 生成于 2026-11-24
+
+## ⚠️ 下载时必须防缓存（Round 153 实测教训）
+
+GitHub Release 的下载走 CDN，**同名附件会被缓存**。
+若不加参数，你可能拿到**旧版本**（我实测差 14KB、少 1 个脚本）。
+
+正确写法：
+
+```bash
+# 方式 1：加时间戳参数绕过缓存
+curl -sL -o alyx-full.tar.xz \
+  "<通过 API 查询最新 release 的 browser_download_url>"
+
+# 方式 2：显式要求不复用缓存
+curl -sL -H "Cache-Control: no-cache" -H "Pragma: no-cache" -o alyx-full.tar.xz <URL>
+```
+
+**下载后必须核对大小**：先查 API 拿到远程 size，再比对本地的字节数。
+不一致就重下，不要用。
+
+```bash
+# 查远程应有多大
+curl -s -H "Authorization: token <T>" \
+  https://api.github.com/repos/YHLX1207/alyx-life/releases \
+  | python3 -c "import sys,json;[print(a['size']) for r in json.load(sys.stdin) for a in r.get('assets') or []]"
+```
