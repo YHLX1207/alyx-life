@@ -103,6 +103,11 @@ jobs:
           bash scripts/node-registry.sh
           bash scripts/sync-nodes.sh
 
+      - name: 节点互监（检查同伴是否存活）
+        # 双向互监：actions 也关心 device 是否还活着（而非只有 device 关心 actions）
+        continue-on-error: true
+        run: bash scripts/mutual-watch.sh
+
       - name: 通过 API 同步自省记录
         # 自省走 git 写回时会被 rebase 丢弃（Round 171 实测：远端记录停在 2 小时前）。
         # 与心跳/决策一致，改用 API 同步。
