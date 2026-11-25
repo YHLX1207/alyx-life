@@ -52,6 +52,7 @@
 | `remote-heartbeat.sh` | 检查远端心跳，陈旧则自动触发 | 无 |
 | `remote-journal.sh` | **守护自写远端心跳**（不依赖 DSH）| 无 |
 | `ensure-self.sh` | **醒来时的一键自愈**（守护/远端/自检）| 可能拉起守护 |
+| `chain-reflect.sh` | **链的自省**（从历史提炼趋势与异常）| 写 state |
 | `lint-readme.sh` | README 脚本清单完整性检查 | 无 |
 | `lint-datasource.sh` | 防止依赖不可靠数据源（diskstats 等）| 无 |
 | `lint-embedded-py.sh` | **检查内嵌 Python 语法**（bash -n 不管）| 无 |
