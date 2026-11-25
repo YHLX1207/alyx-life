@@ -178,6 +178,13 @@ print(d.get('adb',0), d.get('shz',0))
     " >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
+  # ⚠️ 双链一致性检查（Round 209）：CI 中 paste.rs 不可达，工作流里的该检查是"盲"的
+  #    （下载不到任何段，只能报"无法验证"）。由守护（能访问 paste.rs）执行才有实际验证意义。
+  #    每 20 轮（≈1h）一次，结果写入日志。
+  if [ $(( n % 20 )) -eq 0 ]; then
+    ( timeout 120 ./check-chains.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
+
   # 节点互监（每 20 轮 ≈1h）：检查其它节点是否还活着
   # 若同伴全部失联，本机升级为 primary —— 但仅记录，不改变运行方式，
   # 因为 device 节点本来就一直在跑，接管意味着"不再指望 actions"。
