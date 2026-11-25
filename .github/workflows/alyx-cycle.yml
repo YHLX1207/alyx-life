@@ -29,6 +29,9 @@ permissions:
 
 concurrency:
   group: alyx-cycle
+  # 保持 false：cancel-in-progress: true 会杀死 sleep 中的自我唤醒，导致链断。
+  # cron 触发的运行会排队等前一轮完成，不破坏链（只是延迟生效）。
+  # 若排队堆积，见文件末尾"过期跳过"步骤。
   cancel-in-progress: false
 
 jobs:
@@ -40,6 +43,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: 过期检查（避免排队积压后执行陈旧任务）
+        # cron 触发的运行可能排队等前一轮（30 分钟 sleep）完成。
+        # 若排队超过 45 分钟，这次运行已无意义（下一轮早该开始了）→ 直接跳过。
+        id: freshness
+        run: |
+          started="${{ github.event.workflow_run.created_at }}"
+          if [ -n "$started" ]; then
+            now=$(date -u +%s)
+            began=$(date -u -d "$started" +%s 2>/dev/null || echo "$now")
+            age_min=$(( (now - began) / 60 ))
+            echo "排队时长: ${age_min} 分钟"
+            if [ "$age_min" -gt 45 ]; then
+              echo "::warning::排队超过 45 分钟，跳过本次（避免积压）"
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "stale=false" >> "$GITHUB_OUTPUT"
 
       - name: 固定身份
         run: |
