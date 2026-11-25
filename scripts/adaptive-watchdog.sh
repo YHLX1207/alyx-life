@@ -168,6 +168,16 @@ print(d.get('adb',0), d.get('shz',0))
     " >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
+  # ⚠️ 站外种子刷新（Round 208）：CI 中的 offsite-seed 持续失败（paste.rs 对 CI 不可达），
+  #    而本机（守护）实测可成功上传。让守护承担刷新职责，每 15 轮（≈1-1.5h）一次。
+  #    记录同步到远端，供产物检查验证新鲜度。
+  if [ $(( n % 15 )) -eq 0 ]; then
+    ( timeout 300 bash -c "
+      ./offsite-seed.sh
+      ./sync-jsonl.sh state/offsite-seed.jsonl 500
+    " >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
+
   # 节点互监（每 20 轮 ≈1h）：检查其它节点是否还活着
   # 若同伴全部失联，本机升级为 primary —— 但仅记录，不改变运行方式，
   # 因为 device 节点本来就一直在跑，接管意味着"不再指望 actions"。
