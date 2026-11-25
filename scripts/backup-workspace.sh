@@ -43,7 +43,11 @@ cp "$TMP" ../state/local-archive.tar.gz 2>/dev/null && echo "  本地档案已�
 
 # 推送到设备
 if ! timeout 60 $A push "$TMP" "$ARCHIVE" >/dev/null 2>&1; then
-  echo "  ✗ 推送失败（adb 不可用？）"; exit 1
+  # ⚠️ 本地档案已在上面更新过（这是有效的冗余副本）。
+  #    推送失败只说明 /sdcard 不可用，不代表备份完全失败。
+  #    用专门的退出码 2 区分，避免守护记成"整体失败"（Round 186）。
+  echo "  ⚠ 推送失败（adb 不可用），本地档案已更新"
+  exit 2
 fi
 
 # 校验远端一致
