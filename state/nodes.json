@@ -1,27 +1,26 @@
 {
- "actions": {
-  "id": "actions",
-  "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-25T17:38:31Z",
-  "beats": 4,
-  "kind": "actions",
-  "age_hours": 0.0
- },
  "device-localhost": {
   "id": "device-localhost",
   "first_seen": "2026-11-25T15:48:53Z",
   "last_seen": "2026-11-25T15:48:53Z",
   "beats": 1,
   "kind": "device",
-  "age_hours": 1.83
+  "age_hours": 2.35
+ },
+ "actions": {
+  "id": "actions",
+  "first_seen": "2026-11-25T16:05:34Z",
+  "last_seen": "2026-11-25T18:09:58Z",
+  "beats": 5,
+  "kind": "actions",
+  "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-25T17:38:31Z",
+  "ts": "2026-11-25T18:09:58Z",
   "total_nodes": 2,
   "active_nodes": [
-   "actions",
-   "device-localhost"
+   "actions"
   ],
-  "quorum": "healthy"
+  "quorum": "degraded"
  }
 }
