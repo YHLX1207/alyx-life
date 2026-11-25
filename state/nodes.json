@@ -2,8 +2,8 @@
  "device-localhost": {
   "id": "device-localhost",
   "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-25T19:29:44Z",
-  "beats": 3,
+  "last_seen": "2026-11-25T19:39:10Z",
+  "beats": 4,
   "kind": "device",
   "age_hours": 0.0
  },
@@ -13,10 +13,10 @@
   "last_seen": "2026-11-25T19:11:54Z",
   "beats": 7,
   "kind": "actions",
-  "age_hours": 0.3
+  "age_hours": 0.45
  },
  "_summary": {
-  "ts": "2026-11-25T19:29:44Z",
+  "ts": "2026-11-25T19:39:10Z",
   "total_nodes": 2,
   "active_nodes": [
    "device-localhost",
