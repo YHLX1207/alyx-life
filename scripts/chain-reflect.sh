@@ -145,8 +145,24 @@ if prev:
 else:
     rec["verdict"] = "首次自省"
 
-with open(OUT, "a", encoding="utf-8") as f:
-    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+# ---------- 写入并控制体积 ----------
+# 链每天跑 46 轮，若不限制，reflections.jsonl 一年会增加数 MB。
+# 策略：保留最近 200 条（约 4 天的自省历史），超出部分裁掉最旧的。
+MAX_LINES = 200
+
+existing = []
+if os.path.exists(OUT):
+    existing = load_jsonl(OUT)
+
+existing.append(rec)
+if len(existing) > MAX_LINES:
+    existing = existing[-MAX_LINES:]
+
+with open(OUT, "w", encoding="utf-8") as f:
+    for row in existing:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+rec["_kept"] = len(existing)
 
 print(f"  自省: {rec.get('verdict')}  |  决策 {rec.get('decision_count')}  "
       f"心跳 {rec.get('heartbeat_count')}  间隔中位 {rec.get('gap_median_min')}min")
