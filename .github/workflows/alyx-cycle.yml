@@ -105,6 +105,12 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-reflect.sh
 
+      - name: 双链一致性检查
+        # paste.rs 独立链曾落后 15 脚本 / 42 决策而无人发现（Round 196）。
+        # 每轮对比两条链，防止静默落后。并发下载后仅需 5 秒。
+        continue-on-error: true
+        run: bash scripts/check-chains.sh
+
       - name: 节点注册 + 分布式同步
         # 分布式架构：每个节点记录自己，并合并其他节点的状态。
         # 带 sha 乐观并发控制，避免多节点互相覆盖。
