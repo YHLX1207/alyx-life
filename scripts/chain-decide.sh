@@ -18,7 +18,11 @@ cd "$(dirname "$0")"
 python3 - <<'PY'
 import json, os, datetime
 
-STATE = "../state"
+# ⚠️ 支持用环境变量隔离测试数据（Round 168 教训）：
+#    变异测试直接改 state/reflections.jsonl 会产生假结论，
+#    并写入生产用的 chain-decisions.jsonl，污染被推到远端。
+#    ⇒ 测试时设 ALYX_STATE_DIR 指向临时目录，与生产隔离。
+STATE = os.environ.get("ALYX_STATE_DIR") or "../state"
 REFL = os.path.join(STATE, "reflections.jsonl")
 OUT = os.path.join(STATE, "chain-decisions.jsonl")
 now = datetime.datetime.now(datetime.timezone.utc)
