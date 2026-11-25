@@ -16,7 +16,11 @@ TOKEN=$(cat ../state/secrets/github.token 2>/dev/null || echo "")
 [ -n "$TOKEN" ] || { echo "  ✗ 无 token，跳过（这是正常的：CI 环境没有本地 token）"; exit 0; }
 
 REPO="${ALYX_REPO:-YHLX1207/alyx-life}"
-TAG="snapshot-$(date -u +%Y%m%d)"
+# ⚠️ 用固定 tag，不用日期（Round 191）：
+#    日期 tag 会每天新建一个 Release，无限累积（一年 365 个）。
+#    固定 tag + 覆盖附件 ⇒ 永远只有一个 Release，且 URL 稳定。
+#    历史版本仍可从 git 历史或旧 tag 追溯。
+TAG="latest"
 WORK=$(mktemp -d /tmp/alyx-snap.XXXXXX)
 trap 'rm -rf "$WORK"' EXIT
 
