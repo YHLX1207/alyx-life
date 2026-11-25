@@ -46,38 +46,59 @@ if not code or not dec:
     print("  ✗ 自述中缺少代码包或决策史线索")
     sys.exit(1)
 
-def fetch(u, limit=30):
+from concurrent.futures import ThreadPoolExecutor
+
+def fetch(u, limit=45):
     req = urllib.request.Request(f"https://paste.rs/{u}",
                                  headers={"User-Agent": "alyx", "Connection": "close"})
     return urllib.request.urlopen(req, timeout=limit).read()
 
+def fetch_all(urls):
+    """并发下载，避免 10 个 URL 串行等待 50+ 秒（Round 197 实测）"""
+    out = {}
+    with ThreadPoolExecutor(max_workers=min(8, len(urls) or 1)) as ex:
+        futs = {ex.submit(fetch, u): u for u in urls}
+        for f, u in futs.items():
+            try:
+                out[u] = f.result(timeout=60)
+            except Exception:
+                out[u] = None
+    return out
+
 # 验证代码包：统计脚本数
 code_scripts = 0
+_code_data = fetch_all(code)
 for u in code:
+    raw = _code_data.get(u)
+    if raw is None:
+        print(f"  ⚠ 代码段 {u} 读取失败")
+        continue
     try:
-        raw = fetch(u, 60)
-        b64 = raw.strip()
-        blob = base64.b64decode(b64)
-        # tar.xz 里统计 .sh 文件名
-        import lzma, io, tarfile
+        import io, tarfile
+        blob = base64.b64decode(raw.strip())
         with tarfile.open(fileobj=io.BytesIO(blob), mode="r:xz") as tf:
             code_scripts += sum(1 for m in tf.getmembers() if m.name.endswith(".sh"))
     except Exception as e:
-        print(f"  ⚠ 代码段 {u} 读取失败: {str(e)[:40]}")
+        print(f"  ⚠ 代码段 {u} 解析失败: {str(e)[:40]}")
 
 # 验证决策史：统计 ## D
 dec_count = 0
+_dec_data = fetch_all(dec)
 for u in dec:
+    raw = _dec_data.get(u)
+    if raw is None:
+        print(f"  ⚠ 决策段 {u} 读取失败")
+        continue
     try:
-        blob = base64.b64decode(fetch(u, 60).strip())
-        import lzma, io, tarfile
+        import io, tarfile
+        blob = base64.b64decode(raw.strip())
         with tarfile.open(fileobj=io.BytesIO(blob), mode="r:xz") as tf:
             for m in tf.getmembers():
                 if m.isfile():
                     content = tf.extractfile(m).read().decode("utf-8", "ignore")
                     dec_count += len(re.findall(r"^## D", content, re.M))
     except Exception as e:
-        print(f"  ⚠ 决策段 {u} 读取失败: {str(e)[:40]}")
+        print(f"  ⚠ 决策段 {u} 解析失败: {str(e)[:40]}")
 
 print(f"  paste.rs 链: {code_scripts} 脚本 / {dec_count} 决策")
 
