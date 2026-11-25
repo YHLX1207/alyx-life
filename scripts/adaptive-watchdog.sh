@@ -156,6 +156,18 @@ print(d.get('adb',0), d.get('shz',0))
     ( timeout 90 ./remote-heartbeat.sh >/dev/null 2>&1 || true ) &
   fi
 
+  # ⚠️ 节点注册 + 同步（Round 200 修复）：
+  #    守护此前只跑 mutual-watch（只读），从不注册自己。
+  #    ⇒ 设备节点的记录停在手动运行时，长期显示为"失联"。
+  #    ⇒ 节点表共识误判为 degraded，即使守护一直在跑。
+  #    必须每轮（或定期）注册自己，才能反映真实状态。
+  if [ $(( n % 5 )) -eq 0 ]; then
+    ( timeout 90 bash -c "
+      ./node-registry.sh
+      ./sync-nodes.sh
+    " >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
+
   # 节点互监（每 20 轮 ≈1h）：检查其它节点是否还活着
   # 若同伴全部失联，本机升级为 primary —— 但仅记录，不改变运行方式，
   # 因为 device 节点本来就一直在跑，接管意味着"不再指望 actions"。
