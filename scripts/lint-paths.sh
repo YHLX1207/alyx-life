@@ -20,7 +20,11 @@ for f in *.sh; do
   #   b) 不 cd 的 → 裸相对路径依赖调用方 cwd，同样不可靠
   # 原实现跳过 b) 是覆盖盲区（Round 38 发现）
   if grep -q 'cd "\$(dirname "\$0")"' "$f"; then mode="cd"; else mode="no-cd"; fi
-  hits=$(grep -nE "$PAT" "$f" 2>/dev/null | grep -v '^[0-9]*: *#' | grep -vE '\.\./' || true)
+    # ⚠️ 排除 echo/printf 提示语里的路径（Round 177 误报）
+    hits=$(grep -nE "$PAT" "$f" 2>/dev/null \
+           | grep -v '^[0-9]*: *#' \
+           | grep -vE '\.\./' \
+           | grep -vE '(echo|printf).*(state|logs|notes)/' || true)
   if [ -n "$hits" ]; then
     echo "  [$f] ($mode)"
     echo "$hits" | sed 's/^/    /' | head -5
