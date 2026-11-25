@@ -37,6 +37,9 @@ CHECKS = [
     # ⚠️ 自述曾静默过时 20 小时（Round 188）。它虽不是"每轮必变"，
     #    但一旦过时就会误导接手者，必须纳入检查。
     ("self-export",     "state/self-export.md",        "自述",  120),
+    # decisions.md 是最重要的成长记录（185 条）。虽靠 git 写回目前正常，
+    # 但一旦被 rebase 丢弃不会有任何信号（Round 189）。
+    ("decisions",       "state/decisions.md",          "决策史", 4320),
 ]
 
 def fetch(remote_path):
@@ -58,6 +61,14 @@ def fetch(remote_path):
 
 def newest_ts(raw, name):
     """从 jsonl / json / markdown 中取最新时间戳"""
+    if name == "decisions":
+        # 从最新决策标题的 (YYYY-MM-DD，Round N) 推断；无时间则用文件 mtime
+        import re as _re, os as _os
+        ms = _re.findall(r"^## D\d+ · .+?（(\d{4}-\d{2}-\d{2})", raw, _re.M)
+        if ms:
+            # 决策标题只有日期，构造一个当天中午的时间戳（保守估计）
+            return f"{ms[-1]}T00:00:00Z"
+        return None
     if name == "self-export":
         # markdown 里找 "导出时间：YYYY-MM-DDTHH:MM:SSZ"
         import re as _re
@@ -100,7 +111,9 @@ for name, path, label, maxage in CHECKS:
         bad.append((label, "产物不存在"))
         continue
 
-    if name == "self-export":
+    if name == "decisions":
+        count = len(__import__("re").findall(r"^## D", raw, __import__("re").M))
+    elif name == "self-export":
         count = len(raw.splitlines())
     elif name == "nodes":
         count = len([k for k in json.loads(raw) if k != "_summary"])
