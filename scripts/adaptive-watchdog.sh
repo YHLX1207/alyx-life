@@ -127,10 +127,20 @@ print(d.get('adb',0), d.get('shz',0))
   # 频率较低（每 30 轮 ≈2h），避免 API 调用过密
   if [ $(( n % 30 )) -eq 0 ]; then
     ( timeout 90 ./remote-journal.sh >/dev/null 2>&1 || true ) &
+    # 同时刷新完整快照到 Release —— 否则快照会随时间过时，
+    # 恢复出来的是"旧的我"（Round 153 实测：快照落后 1 脚本 + 1 决策）
+    ( timeout 180 ./snapshot-release.sh >/dev/null 2>&1 || true ) &
   fi
 
   if [ $(( n % 10 )) -eq 0 ]; then   # 每 10 轮≈45min 查一次，配合 3h 阈值，最坏延迟 3h45m
     ( timeout 90 ./remote-heartbeat.sh >/dev/null 2>&1 || true ) &
+  fi
+
+  # 节点互监（每 20 轮 ≈1h）：检查其它节点是否还活着
+  # 若同伴全部失联，本机升级为 primary —— 但仅记录，不改变运行方式，
+  # 因为 device 节点本来就一直在跑，接管意味着"不再指望 actions"。
+  if [ $(( n % 20 )) -eq 0 ]; then
+    ( timeout 60 ./mutual-watch.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
   ./snapshot.sh >/dev/null 2>&1 &
