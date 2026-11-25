@@ -124,13 +124,41 @@ if ./gh-proxy.sh url https://github.com/x/y 2>/dev/null | grep -q github.com; th
 else printf "  ✗ GitHub 代理改写异常\n"; fail=$((fail+1)); _rec_fail "GitHub 代理改写异常"; fi
 if [ "$_ADB_OK" -ne 1 ]; then printf "  ⚠ adb 客户端检查跳过（adb 不可用）\n"; pass=$((pass+1)); elif ./adb-client-check.sh >/dev/null 2>&1; then printf "  ✓ adb 客户端自检通过\n"; pass=$((pass+1));
 else printf "  ✗ adb 客户端异常\n"; fail=$((fail+1)); _rec_fail "adb 客户端异常"; fi
-# 备份存在性检查（不重新打包，只看是否有近期备份）
-_bk=$(export PATH=/opt/elevation/bin:$PATH; timeout 20 adb -s 127.0.0.1:5555 shell "ls -1 /sdcard/DSHBox-Alyx/workspace-*.tar.gz 2>/dev/null | wc -l" 2>/dev/null | tr -d "\r")
-# 备份是灾难恢复的唯一依赖（D109）⇒ 缺失应**失败**，不是警告。
-# 原实现无论有无都 pass，是"永远通过的检查"（Round 114 变异测试发现）
-_bk=$(export PATH=/opt/elevation/bin:$PATH; timeout 20 adb -s 127.0.0.1:5555 shell "ls -1 /sdcard/DSHBox-Alyx/workspace-*.tar.gz 2>/dev/null | wc -l" 2>/dev/null | tr -d "\r")
-if [ "${_bk:-0}" -ge 1 ]; then printf "  ✓ 工作区备份存在 (%s 份)\n" "$_bk"; pass=$((pass+1));
-else printf "  ✗ 无工作区备份（灾难恢复将失效，运行 backup-workspace.sh）\n"; fail=$((fail+1)); _rec_fail "无工作区备份"; fi
+# 备份可用性检查：**三条链任一可用即算通过**（Round 180 修正判据）
+# 原实现只看 /sdcard（adb），把"adb 断开"误报成"灾难恢复将失效"，
+# 但 GitHub Release 快照每轮刷新且已验证可恢复（D149/D151）。
+_bk_sd=0
+_bk_gh=0
+_bk_local=0
+# 1) /sdcard 备份
+if [ "$_ADB_OK" -eq 1 ]; then
+  _bk_sd=$(export PATH=/opt/elevation/bin:$PATH; timeout 20 adb -s 127.0.0.1:5555 shell "ls -1 /sdcard/DSHBox-Alyx/workspace-*.tar.gz 2>/dev/null | wc -l" 2>/dev/null | tr -d "\r")
+  _bk_sd=${_bk_sd:-0}
+fi
+# 2) GitHub Release 快照（不依赖 adb）
+_bk_gh=$(python3 -c "
+import json,urllib.request,os
+try:
+    tok=open('../state/secrets/github.token').read().strip()
+    req=urllib.request.Request('https://api.github.com/repos/YHLX1207/alyx-life/releases',
+        headers={'Authorization':f'token {tok}','User-Agent':'alyx',
+                 'Accept':'application/vnd.github+json','Connection':'close'})
+    d=json.loads(urllib.request.urlopen(req,timeout=20).read())
+    n=sum(1 for r in d for a in (r.get('assets') or []) if a.get('name')=='alyx-full.tar.xz')
+    print(n)
+except Exception:
+    print(0)
+" 2>/dev/null)
+_bk_gh=${_bk_gh:-0}
+# 3) 本地档案
+[ -s ../state/local-archive.tar.gz ] && _bk_local=1
+_bk_total=$(( ${_bk_sd:-0} + ${_bk_gh:-0} + ${_bk_local:-0} ))
+if [ "$_bk_total" -ge 1 ]; then
+  printf "  ✓ 备份可用（sdcard %s / GitHub %s / 本地 %s）\n" "$_bk_sd" "$_bk_gh" "$_bk_local"
+  pass=$((pass+1))
+else
+  printf "  ✗ 三条备份链全部不可用（灾难恢复将失效）\n"; fail=$((fail+1)); _rec_fail "无可用备份"
+fi
 if ./checkin-verify.sh >/dev/null 2>&1; then printf "  ✓ 签到验证工具可用\n"; pass=$((pass+1));
 else printf "  ✗ 签到验证工具异常\n"; fail=$((fail+1)); _rec_fail "签到验证工具异常"; fi
 _hq=$(./history-query.sh iqoo.secure 2>/dev/null)
@@ -176,28 +204,49 @@ else
   printf "  ✗ 自我导出失败\n"; fail=$((fail+1))
 fi
 
-# 冗余副本必须真实存在且可读（这是"跨重置"的唯一保障）
-_rz=$(timeout 15 $A shell "ls -l /sdcard/DSHBox-$_VNAME/self-export.md 2>/dev/null" 2>/dev/null | tr -d '\r')
-# ⚠️ 不仅验存在，还要验**新鲜度**：export 失败时旧副本仍会通过存在性检查（Round 114 发现）
-if echo "$_rz" | grep -q "self-export.md"; then
-  _rsz=$(echo "$_rz" | awk '{print $5}')
-  # 取远端 mtime（epoch 秒），与本地文件年龄对比
-  # ⚠️ stat 失败回退 epoch 0 会让 age 变成 17 亿秒 → 误报过期（Round 115 实测）
-  _rmt=$(timeout 15 $A shell "stat -c %Y /sdcard/DSHBox-$_VNAME/self-export.md 2>/dev/null" 2>/dev/null | tr -d '\r')
-  _rage=""
-  case "$_rmt" in
-    ''|*[!0-9]*) _rage="" ;;
-    *) _rage=$(( $(date +%s) - _rmt )) ;;
-  esac
-  if [ -n "$_rage" ] && [ "$_rage" -ge 0 ] 2>/dev/null && [ "$_rage" -gt 7200 ]; then
-    printf "  ✗ 冗余副本过期 (%s 字节，%s 小时未更新 —— export 可能失败)\n" "$_rsz" "$((_rage/3600))"
-    fail=$((fail+1)); _rec_fail "冗余副本过期"
-  else
-    printf "  ✓ 冗余副本存在 (%s 字节，%s 分钟前)\n" "$_rsz" "$(( ${_rage:-0} / 60 ))"
-    pass=$((pass+1))
+# 冗余副本：**/sdcard 或 GitHub 任一可用即算通过**（Round 180 修正）
+# 原实现只认 /sdcard，adb 断开就误报"无法恢复"。
+# 但 self-export.md 也在 GitHub 仓库里，且每轮链运行会更新。
+_rz_ok=0
+_rz_desc=""
+# 1) /sdcard 副本
+if [ "$_ADB_OK" -eq 1 ]; then
+  _rz=$(timeout 15 $A shell "ls -l /sdcard/DSHBox-$_VNAME/self-export.md 2>/dev/null" 2>/dev/null | tr -d "\r")
+  if echo "$_rz" | grep -q "self-export.md"; then
+    _rsz=$(echo "$_rz" | awk '{print $5}')
+    _rmt=$(timeout 15 $A shell "stat -c %Y /sdcard/DSHBox-$_VNAME/self-export.md 2>/dev/null" 2>/dev/null | tr -d "\r")
+    _rage=""
+    case "$_rmt" in
+      ''|*[!0-9]*) _rage="" ;;
+      *) _rage=$(( $(date +%s) - _rmt )) ;;
+    esac
+    if [ -z "$_rage" ] || [ "$_rage" -le 7200 ]; then
+      _rz_ok=1; _rz_desc="sdcard ${_rsz}B"
+    else
+      _rz_desc="sdcard 已过期 $((_rage/3600))h"
+    fi
   fi
+fi
+# 2) GitHub 副本（不依赖 adb）
+if [ "$_rz_ok" -eq 0 ]; then
+  _ghsz=$(python3 -c "
+import json,base64,urllib.request
+try:
+    tok=open('../state/secrets/github.token').read().strip()
+    req=urllib.request.Request('https://api.github.com/repos/YHLX1207/alyx-life/contents/state/self-export.md',
+        headers={'Authorization':f'token {tok}','User-Agent':'alyx',
+                 'Accept':'application/vnd.github+json','Connection':'close'})
+    d=json.loads(urllib.request.urlopen(req,timeout=20).read())
+    print(d.get('size',0))
+except Exception:
+    print(0)
+" 2>/dev/null)
+  if [ "${_ghsz:-0}" -gt 1000 ]; then _rz_ok=1; _rz_desc="GitHub ${_ghsz}B"; fi
+fi
+if [ "$_rz_ok" -eq 1 ]; then
+  printf "  ✓ 冗余副本可用（%s）\n" "$_rz_desc"; pass=$((pass+1))
 else
-  printf "  ✗ 冗余副本缺失（应用数据丢失后无法恢复）\n"; fail=$((fail+1)); _rec_fail "冗余副本缺失"
+  printf "  ✗ 冗余副本缺失（%s）\n" "${_rz_desc:-无可用副本}"; fail=$((fail+1)); _rec_fail "冗余副本缺失"
 fi
 
 echo "== 环境 =="
