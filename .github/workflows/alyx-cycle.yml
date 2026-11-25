@@ -189,17 +189,16 @@ jobs:
           PYBEAT
 
       - name: 产物落库校验（检测静默失败）
-        # ⚠️ 同步步骤都是 continue-on-error，token 失效时每个同步会**静默失败**，
         #    链继续显示全部成功，但数据实际已停更（Round 202 发现）。
-        #    本步骤读取**远端**产物，若任一项陈旧则明确标记失败（但继续，不打断链）。
-        #    步骤显示 failure = 有东西没落库，需排查；链本身仍由自我唤醒延续。
+        #    本步骤读取**远端**产物，若任一项陈旧则**真正失败**（步骤显示 failure）。
+        #    ⚠️ 不加 continue-on-error —— 否则失败也会显示 success，静默失败不可见（Round 204）。
+        #    链的存活由后续三步的 `if: always()` 保证（快照/写回/自我唤醒仍会执行）。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
         run: bash scripts/check-products.sh
 
       - name: 发布完整快照到 Release
-      # 让"完整可恢复的那一份"始终有稳定 URL，不依赖某次 commit
+        if: always()   # 无论前面是否失败，链的收尾步骤必须执行
       # CI 环境无本地 token，需要用 GitHub 自动提供的 GITHUB_TOKEN
         env:
           GH_TOKEN_CI: ${{ secrets.GITHUB_TOKEN }}
@@ -212,7 +211,7 @@ jobs:
           rm -f state/secrets/github.token
 
       - name: 写回状态
-      # ⚠️ 链式循环下多轮可能重叠，git push 会因远端有新提交而失败。
+        if: always()   # 无论前面是否失败，链的收尾步骤必须执行
       #    必须 fetch+rebase 后再推；且设为非致命，单次失败不打断链。
         continue-on-error: true
         run: |
@@ -236,10 +235,11 @@ jobs:
           echo "⚠ 推送失败，本轮状态未写回（链继续，下轮会重试）"
 
       - name: 自我唤醒（链式循环，不依赖 cron）
+        if: always()   # 无论前面是否失败，链的收尾步骤必须执行
         # ⚠️ cron 实测会触发（Round 201 核实历史 4 次：#1 成功，#37/#38/#57 被并发取消）。
-      #    解法：每次运行结束时自我 dispatch，形成链。
+        #    解法：每次运行结束时自我 dispatch，形成链。
         #    本步骤是主唤醒路径；cron 与 device 守护是另外两条兜底路径。
-      #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
+        #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
