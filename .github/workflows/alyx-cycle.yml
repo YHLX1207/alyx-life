@@ -142,7 +142,9 @@ jobs:
         #    必须 fetch+rebase 后再推；且设为非致命，单次失败不打断链。
         continue-on-error: true
         run: |
-          if git diff --quiet && git diff --cached --quiet; then
+          # 注意：git diff 检测不到未跟踪的新文件（如首次生成的 reflections.jsonl），
+          # 会误判为"无变化"而跳过提交。必须用 status --porcelain。
+          if [ -z "$(git status --porcelain)" ]; then
             echo "无变化，跳过提交"
             exit 0
           fi
