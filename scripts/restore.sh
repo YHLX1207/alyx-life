@@ -96,9 +96,11 @@ restore_a() {
   tar xJf "$TMP/a.tar.xz" -C "$TMP/a" 2>/dev/null || { fail "解压失败"; return 1; }
   # 快照内是 dest/ 目录
   if [ -d "$TMP/a/dest" ]; then
-    cp -r "$TMP/a/dest/scripts" "$TMP/a/dest/state" "$TMP/a/dest/README.md" "$TMP/a/dest/notes" .. 2>/dev/null
+    # ⚠️ 必须包含"设备手册.md"——用户手册是恢复的一部分（Round 195 实测发现漏了）
+    cp -r "$TMP/a/dest/scripts" "$TMP/a/dest/state" "$TMP/a/dest/README.md" \
+          "$TMP/a/dest/notes" "$TMP/a/dest/设备手册.md" .. 2>/dev/null
   elif [ -d "$TMP/a/scripts" ]; then
-    cp -r "$TMP/a/scripts" "$TMP/a/state" "$TMP/a/README.md" .. 2>/dev/null
+    cp -r "$TMP/a/scripts" "$TMP/a/state" "$TMP/a/README.md" "$TMP/a/设备手册.md" .. 2>/dev/null
   fi
   ok "已还原"
   return 0
