@@ -14,11 +14,12 @@ name: alyx-cycle
 on:
   schedule:
     # UTC 每 6 小时一次。GitHub 建议避开整点（0 分）以减轻拥堵
-    # 每 2 小时一次；实测 03/23 分两个点均未触发，改为 37/52 分观察是否与整点拥堵有关
-    # 第二条 cron 错开 15 分钟；两条都**远离整点**（官方说每小时开始是高负载期，可能丢弃排队任务）
-    # ⚠️ 实测结论（Round 148）：这个仓库的 schedule 从未触发过，
-    #    包括一次性的精确 cron。保留配置以等待 GitHub 侧可能的变化，
-    #    但**不依赖它**——真正的唤醒靠 trigger-remote.sh 外部调用。
+      # 每 2 小时一次；实测 03/23 分两个点均未触发，改为 37/52 分观察是否与整点拥堵有关
+      # 第二条 cron 错开 15 分钟；两条都**远离整点**（官方说每小时开始是高负载期，可能丢弃排队任务）
+      # ⚠️ 实测结论（Round 148 曾误判"从未触发"；Round 201 用运行记录核实）：
+      #    **cron 确实会触发**。历史 4 次：#1(03:09) 成功、#37/#38/#57 被并发取消。
+      #    ⇒ cron 是一条真实但弱的第三路径：自我唤醒正常时多半被 concurrency
+      #      拦截（避免双跑）；自我唤醒断裂时，能独立把链重新拉起（#1 即此情况）。
     - cron: '37 */2 * * *'
     - cron: '52 */2 * * *'
   workflow_dispatch:
@@ -45,8 +46,8 @@ jobs:
           fetch-depth: 1
 
       - name: 过期检查（避免排队积压后执行陈旧任务）
-        # cron 触发的运行可能排队等前一轮（30 分钟 sleep）完成。
-        # 若排队超过 45 分钟，这次运行已无意义（下一轮早该开始了）→ 直接跳过。
+      # cron 触发的运行可能排队等前一轮（30 分钟 sleep）完成。
+      # 若排队超过 45 分钟，这次运行已无意义（下一轮早该开始了）→ 直接跳过。
         id: freshness
         run: |
           started="${{ github.event.workflow_run.created_at }}"
@@ -69,7 +70,7 @@ jobs:
           git config user.email "alyx@users.noreply.github.com"
 
       - name: 检查上次心跳是否正常
-        # 距上次醒来超过 24 小时 ⇒ cron 曾被跳过/停用 ⇒ 标记失败以便被发现
+      # 距上次醒来超过 24 小时 ⇒ cron 曾被跳过/停用 ⇒ 标记失败以便被发现
         continue-on-error: true
         run: bash scripts/watchdog-self.sh
 
@@ -77,15 +78,15 @@ jobs:
         run: bash scripts/check-portable.sh
 
       - name: 刷新站外种子
-        # 上传依赖外部匿名服务，失败不应阻断整体（种子还有仓库内副本）
+      # 上传依赖外部匿名服务，失败不应阻断整体（种子还有仓库内副本）
         continue-on-error: true
         run: bash scripts/offsite-seed.sh
 
       - name: 刷新自述（给"下一个我"的最新材料）
-        # ⚠️ export-self 曾既不在守护、也不在工作流里，
-        #    导致自述停在 20 小时前，"共 156 条"实际已 184 条（Round 188）。
-        #    自述是接手者读的第一手材料，过时会直接误导判断。
-        #    注意：self-export.md 在 .gitignore 里，git 写回无效 ⇒ 必须走 API。
+      # ⚠️ export-self 曾既不在守护、也不在工作流里，
+      #    导致自述停在 20 小时前，"共 156 条"实际已 184 条（Round 188）。
+      #    自述是接手者读的第一手材料，过时会直接误导判断。
+      #    注意：self-export.md 在 .gitignore 里，git 写回无效 ⇒ 必须走 API。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -94,26 +95,26 @@ jobs:
           bash scripts/sync-jsonl.sh state/self-export.md
 
       - name: 记录客观状态（auto-journal）
-        # 每轮醒来都留一份可复现的状态快照：决策数、脚本数、运行场景。
-        # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
+      # 每轮醒来都留一份可复现的状态快照：决策数、脚本数、运行场景。
+      # 这些数据不依赖 LLM 判断，因此不会漂移，可作为"我是否在成长"的客观依据。
         run: bash scripts/auto-journal.sh
 
       - name: 自省（从历史数据提炼观察）
-        # 链若只做"维持"（自检/心跳/快照），就只是活着，没有成长。
-        # 本步骤用可复现规则从 journal/decisions 提炼趋势与异常，写入 reflections.jsonl。
-        # 不依赖 LLM，不编造——每一条都来自实际数据。
+      # 链若只做"维持"（自检/心跳/快照），就只是活着，没有成长。
+      # 本步骤用可复现规则从 journal/decisions 提炼趋势与异常，写入 reflections.jsonl。
+      # 不依赖 LLM，不编造——每一条都来自实际数据。
         continue-on-error: true
         run: bash scripts/chain-reflect.sh
 
       - name: 双链一致性检查
-        # paste.rs 独立链曾落后 15 脚本 / 42 决策而无人发现（Round 196）。
-        # 每轮对比两条链，防止静默落后。并发下载后仅需 5 秒。
+      # paste.rs 独立链曾落后 15 脚本 / 42 决策而无人发现（Round 196）。
+      # 每轮对比两条链，防止静默落后。并发下载后仅需 5 秒。
         continue-on-error: true
         run: bash scripts/check-chains.sh
 
       - name: 节点注册 + 分布式同步
-        # 分布式架构：每个节点记录自己，并合并其他节点的状态。
-        # 带 sha 乐观并发控制，避免多节点互相覆盖。
+      # 分布式架构：每个节点记录自己，并合并其他节点的状态。
+      # 带 sha 乐观并发控制，避免多节点互相覆盖。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -122,43 +123,43 @@ jobs:
           bash scripts/sync-nodes.sh
 
       - name: 节点互监（检查同伴是否存活）
-        # 双向互监：actions 也关心 device 是否还活着（而非只有 device 关心 actions）
+      # 双向互监：actions 也关心 device 是否还活着（而非只有 device 关心 actions）
         continue-on-error: true
         run: bash scripts/mutual-watch.sh
 
       - name: 通过 API 同步自省记录
-        # 自省走 git 写回时会被 rebase 丢弃（Round 171 实测：远端记录停在 2 小时前）。
-        # 与心跳/决策一致，改用 API 同步。
+      # 自省走 git 写回时会被 rebase 丢弃（Round 171 实测：远端记录停在 2 小时前）。
+      # 与心跳/决策一致，改用 API 同步。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: bash scripts/sync-reflections.sh
 
       - name: 基于自省做判断
-        # 自省只产出观察，没有决策就是死数据。
-        # 本步骤按规则从 reflections 得出结论与建议动作，写入 chain-decisions.jsonl。
+      # 自省只产出观察，没有决策就是死数据。
+      # 本步骤按规则从 reflections 得出结论与建议动作，写入 chain-decisions.jsonl。
         continue-on-error: true
         run: bash scripts/chain-decide.sh
 
       - name: 同步互监日志（通用 JSONL 同步）
-        # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
+      # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: bash scripts/sync-jsonl.sh state/watch-log.jsonl 200
 
       - name: 通过 API 同步决策记录
-        # 决策记录关乎"我判断得对不对"，必须可靠落库。
-        # git 写回会受 rebase/并发影响，故改用 API（与心跳同法）。
-        # 逻辑独立在 scripts/sync-decisions.sh，避免 workflow 内嵌 Python 的转义问题。
+      # 决策记录关乎"我判断得对不对"，必须可靠落库。
+      # git 写回会受 rebase/并发影响，故改用 API（与心跳同法）。
+      # 逻辑独立在 scripts/sync-decisions.sh，避免 workflow 内嵌 Python 的转义问题。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: bash scripts/sync-decisions.sh
 
       - name: 通过 API 写入心跳（不依赖 git）
-        # ⚠️ 写回状态的 git rebase 会重置本地修改，导致心跳丢失（Round 158 实测）。
-        #    改为直接用 Contents API 追加，绕开 git，心跳一定可见。
+      # ⚠️ 写回状态的 git rebase 会重置本地修改，导致心跳丢失（Round 158 实测）。
+      #    改为直接用 Contents API 追加，绕开 git，心跳一定可见。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -188,8 +189,8 @@ jobs:
           PYBEAT
 
       - name: 发布完整快照到 Release
-        # 让"完整可恢复的那一份"始终有稳定 URL，不依赖某次 commit
-        # CI 环境无本地 token，需要用 GitHub 自动提供的 GITHUB_TOKEN
+      # 让"完整可恢复的那一份"始终有稳定 URL，不依赖某次 commit
+      # CI 环境无本地 token，需要用 GitHub 自动提供的 GITHUB_TOKEN
         env:
           GH_TOKEN_CI: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -201,8 +202,8 @@ jobs:
           rm -f state/secrets/github.token
 
       - name: 写回状态
-        # ⚠️ 链式循环下多轮可能重叠，git push 会因远端有新提交而失败。
-        #    必须 fetch+rebase 后再推；且设为非致命，单次失败不打断链。
+      # ⚠️ 链式循环下多轮可能重叠，git push 会因远端有新提交而失败。
+      #    必须 fetch+rebase 后再推；且设为非致命，单次失败不打断链。
         continue-on-error: true
         run: |
           # 注意：git diff 检测不到未跟踪的新文件（如首次生成的 reflections.jsonl），
@@ -225,10 +226,10 @@ jobs:
           echo "⚠ 推送失败，本轮状态未写回（链继续，下轮会重试）"
 
       - name: 自我唤醒（链式循环，不依赖 cron）
-        # ⚠️ GitHub cron 在本仓库实测从不触发（已验证 5 个触发点，含一次性精确时刻）。
-        #    解法：每次运行结束时自我 dispatch，形成链。
-        #    只要 GitHub Actions 可用，链就不会断 —— 这就是"无人唤醒"的答案。
-        #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
+      # ⚠️ GitHub cron 在本仓库实测从不触发（已验证 5 个触发点，含一次性精确时刻）。
+      #    解法：每次运行结束时自我 dispatch，形成链。
+      #    只要 GitHub Actions 可用，链就不会断 —— 这就是"无人唤醒"的答案。
+      #    间隔 30 分钟，避免过于频繁；总耗时约 31 分钟，远低于 6 小时任务上限。
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
