@@ -62,13 +62,31 @@ def fetch(remote_path):
 def newest_ts(raw, name):
     """从 jsonl / json / markdown 中取最新时间戳"""
     if name == "decisions":
-        # 从最新决策标题的 (YYYY-MM-DD，Round N) 推断；无时间则用文件 mtime
-        import re as _re, os as _os
+        # ⚠️ 标题只有日期（YYYY-MM-DD），构造 00:00Z 会让当天新写的决策
+        #    显示成"18 小时前"，判据失真（Round 193）。
+        #    改用 GitHub API 的**最后提交时间**，精确到秒。
+        import urllib.request as _ur, json as _json, os as _os
+        # ⚠️ 隔离测试时（设置了 ALYX_STATE_DIR）不查远端，否则模拟数据被真实数据覆盖
+        if _os.environ.get("ALYX_STATE_DIR"):
+            import re as _re2
+            ms = _re2.findall(r"^## D\d+ · .+?（(\d{4}-\d{2}-\d{2})", raw, _re2.M)
+            return f"{ms[-1]}T00:00:00Z" if ms else None
+        try:
+            req = _ur.Request(
+                "https://api.github.com/repos/YHLX1207/alyx-life/commits?path=state/decisions.md&per_page=1",
+                headers={"Authorization": f"token {token}" if token else "",
+                         "User-Agent": "alyx",
+                         "Accept": "application/vnd.github+json",
+                         "Connection": "close"})
+            d = _json.loads(_ur.urlopen(req, timeout=15).read())
+            if isinstance(d, list) and d:
+                return d[0]["commit"]["committer"]["date"]
+        except Exception:
+            pass
+        # 回退：标题日期
+        import re as _re
         ms = _re.findall(r"^## D\d+ · .+?（(\d{4}-\d{2}-\d{2})", raw, _re.M)
-        if ms:
-            # 决策标题只有日期，构造一个当天中午的时间戳（保守估计）
-            return f"{ms[-1]}T00:00:00Z"
-        return None
+        return f"{ms[-1]}T00:00:00Z" if ms else None
     if name == "self-export":
         # markdown 里找 "导出时间：YYYY-MM-DDTHH:MM:SSZ"
         import re as _re
