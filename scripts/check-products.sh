@@ -28,10 +28,14 @@ import sys, json, base64, urllib.request, urllib.error, datetime, os
 token, repo = sys.argv[1], sys.argv[2]
 now = datetime.datetime.now(datetime.timezone.utc)
 
+# ⚠️ 阈值依据（Round 194 实测）：
+#    心跳 23 分钟 / 自省 33 分钟 / 决策 34 分钟 / 互监 24 分钟。
+#    原阈值 45 分钟对"决策"只有 1.3x 余量，正常波动就会误报。
+#    统一提到 90 分钟（约 2.6x），既能容忍波动，又能发现真断更。
 CHECKS = [
-    ("journal",         "state/journal.jsonl",         "心跳",   45),
-    ("reflections",     "state/reflections.jsonl",     "自省",   45),
-    ("chain-decisions", "state/chain-decisions.jsonl", "决策",   45),
+    ("journal",         "state/journal.jsonl",         "心跳",   90),
+    ("reflections",     "state/reflections.jsonl",     "自省",   90),
+    ("chain-decisions", "state/chain-decisions.jsonl", "决策",   90),
     ("watch-log",       "state/watch-log.jsonl",       "互监",  120),
     ("nodes",           "state/nodes.json",            "节点",  120),
     # ⚠️ 自述曾静默过时 20 小时（Round 188）。它虽不是"每轮必变"，
