@@ -13,7 +13,12 @@ TOKEN=$(cat ../state/secrets/github.token 2>/dev/null || echo "")
 [ -n "$TOKEN" ] || { echo "  无 token，跳过"; exit 0; }
 
 REPO="${ALYX_REPO:-YHLX1207/alyx-life}"
-MAX_HOURS="${ALYX_MAX_GAP_HOURS:-3}"
+# ⚠️ 阈值依据实测（Round 184）：
+#    github-actions 每 30 分钟一次，device-daemon 每 10-30 分钟一次，
+#    双源交错后**正常最大间隔约 30 分钟**。
+#    原阈值 3 小时过于宽松 ⇒ 链断后要等 3 小时才开始恢复。
+#    改为 1.5 小时（正常值的 3 倍），既不会误触发，又能更快发现断链。
+MAX_HOURS="${ALYX_MAX_GAP_HOURS:-1.5}"
 
 python3 - "$TOKEN" "$REPO" "$MAX_HOURS" <<'PY'
 import sys, json, base64, urllib.request, datetime, time, os
@@ -79,12 +84,12 @@ if gap is None:
     log({"ts": now_s, "action": "read_failed", "err": err})
     sys.exit(0)          # 网络问题不算失败，避免守护告警噪音
 
-print(f"  远端心跳距今 {gap:.1f} 小时 (阈值 {max_h:.0f})")
+print(f"  远端心跳距今 {gap:.1f} 小时 (阈值 {max_h:g} 小时)")
 if gap < max_h:
     print("  ✓ 仍新鲜，无需触发")
     sys.exit(0)
 
-print(f"  ✗ 超过阈值 → 远程触发")
+print(f"  ✗ 超过阈值 {max_h:g}h → 远程触发")
 ok, info = dispatch()
 if ok:
     print(f"  ✓ 已触发（第 {info} 次尝试成功）")
