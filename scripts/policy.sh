@@ -5,6 +5,15 @@
 decide_interval() {
   local base=$1 adb_ok=$2 shz_ok=$3 batt=$4 mem=$5 load=${6:-}
   if [ "$adb_ok" != "true" ]; then
+    # ⚠️ 区分"短暂断开"与"长期断开"（Round 185）：
+    #    短断（刚断）用 base/3 快速轮询，争取尽快发现恢复；
+    #    长断（>1 小时）几乎肯定是物理断开，快速轮询毫无意义且耗电，
+    #    改为 base*2 放慢。
+    #    判定依据：adb_down 持续轮数（环境变量 ALYX_ADB_STREAK，由守护传入）。
+    local st=${ALYX_ADB_STREAK:-0}
+    if [ "${st:-0}" -gt 120 ] 2>/dev/null; then
+      echo "$((base*2)) adb_down_long"; return
+    fi
     echo "$((base/3)) adb_down"; return
   fi
   if [ "$shz_ok" != "true" ]; then
