@@ -58,12 +58,25 @@ def check_scripts(spec):
             missing.append(s)
     return missing
 
+# 凭据来源映射：环境变量名 → 本机文件路径
+# ⚠️ 只看环境变量会误判（Round 219 实测）：
+#    publish 在设备节点被判"缺 GH_TOKEN"，但本机 token 文件存在，
+#    且 snapshot-release.sh 实际已成功发布多次。
+#    **能力判定要以"实际可否完成"为准，不是"环境变量是否被 export"。**
+ENV_FILE_FALLBACK = {
+    "GH_TOKEN": os.path.join(state, "secrets", "github.token"),
+}
+
 def check_env(spec):
     missing = []
     for env in spec.get("requires_env") or []:
-        if not os.environ.get(env):
-            # 不要求 env 的能力（think）也要看本机是否有网关
-            missing.append(env)
+        if os.environ.get(env):
+            continue
+        # 环境变量缺失 ⇒ 看是否有本机文件等价来源
+        fb = ENV_FILE_FALLBACK.get(env)
+        if fb and os.path.exists(fb) and os.path.getsize(fb) > 20:
+            continue
+        missing.append(env)
     return missing
 
 PROBE_HISTORY = os.path.join(state, "capability-probe.jsonl")
