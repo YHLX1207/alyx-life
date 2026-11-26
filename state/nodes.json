@@ -1,4 +1,32 @@
 {
+ "device-localhost": {
+  "id": "device-localhost",
+  "did": "did:alyx:shamir-2of3",
+  "first_seen": "2026-11-25T15:48:53Z",
+  "last_seen": "2026-11-26T17:38:04Z",
+  "beats": 53,
+  "kind": "device",
+  "caps": [
+   "bootstrap",
+   "chain-check",
+   "consensus",
+   "heartbeat",
+   "identity",
+   "maintain",
+   "mutual-watch",
+   "node-registration",
+   "persistence",
+   "push",
+   "reason",
+   "reasoning",
+   "restore",
+   "self-awareness",
+   "self-check",
+   "self-reflection",
+   "snapshot-release"
+  ],
+  "age_hours": 0.0
+ },
  "actions": {
   "id": "actions",
   "did": null,
@@ -24,40 +52,12 @@
   ],
   "age_hours": 0.0
  },
- "device-localhost": {
-  "id": "device-localhost",
-  "did": "did:alyx:shamir-2of3",
-  "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-26T16:50:47Z",
-  "beats": 52,
-  "kind": "device",
-  "caps": [
-   "bootstrap",
-   "chain-check",
-   "consensus",
-   "heartbeat",
-   "identity",
-   "maintain",
-   "mutual-watch",
-   "node-registration",
-   "persistence",
-   "push",
-   "reason",
-   "reasoning",
-   "restore",
-   "self-awareness",
-   "self-check",
-   "self-reflection",
-   "snapshot-release"
-  ],
-  "age_hours": 0.38
- },
  "_summary": {
-  "ts": "2026-11-26T17:13:32Z",
+  "ts": "2026-11-26T17:38:04Z",
   "total_nodes": 2,
   "active_nodes": [
-   "actions",
-   "device-localhost"
+   "device-localhost",
+   "actions"
   ],
   "quorum": "healthy"
  }
