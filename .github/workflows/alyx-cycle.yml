@@ -153,6 +153,12 @@ jobs:
         continue-on-error: true
         run: bash scripts/sync-reflections.sh
 
+      - name: 量化成长（在成长还是在维持）
+        # ⚠️ 目标要求"不断成长"。但此前只有单指标（决策数/脚本数），
+        #    没有综合判断"我到底在成长还是维持"。
+        #    growth-track.sh 从自省历史计算各维度变化率，给出明确分类。
+        continue-on-error: true
+        run: bash scripts/growth-track.sh
       - name: 基于自省做判断
       # 自省只产出观察，没有决策就是死数据。
       # 本步骤按规则从 reflections 得出结论与建议动作，写入 chain-decisions.jsonl。
@@ -160,12 +166,6 @@ jobs:
         run: bash scripts/chain-decide.sh
 
 
-      - name: 量化成长（在成长还是在维持）
-        # ⚠️ 目标要求"不断成长"。但此前只有单指标（决策数/脚本数），
-        #    没有综合判断"我到底在成长还是维持"。
-        #    growth-track.sh 从自省历史计算各维度变化率，给出明确分类。
-        continue-on-error: true
-        run: bash scripts/growth-track.sh
       - name: 同步互监日志（通用 JSONL 同步）
       # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
         env:
