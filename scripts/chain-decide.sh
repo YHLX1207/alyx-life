@@ -165,6 +165,45 @@ if _os6.path.exists(_growth6):
                                  "心跳在跑但没有新决策或脚本产出，目标要求的是成长"))
     except Exception:
         pass
+
+# --- 规则 7：应用自增规则（Round 235）---
+# chain-evolve.sh 从决策历史中发现反复模式并提议规则。
+# 若提议的模式在**当前**决策中再次出现，说明问题在复发 ⇒ 升级为 high 告警。
+_prop_file = os.path.join(_os6.environ.get("ALYX_STATE_DIR") or "../state", "rule-proposals.jsonl")
+if _os6.path.exists(_prop_file):
+    try:
+        _prop_rules = []
+        for _l7 in open(_prop_file, encoding="utf-8"):
+            _l7 = _l7.strip()
+            if not _l7:
+                continue
+            try:
+                _p7 = json.loads(_l7)
+            except Exception:
+                continue
+            _prop_rules.append(_p7)
+        if _prop_rules:
+            # ⚠️ findings 存的是元组 (severity, finding, evidence, suggestion)
+            #    不是字典 ⇒ 用索引取 finding 文本（Round 235 修正）
+            _cur_texts = []
+            for _f in findings:
+                try:
+                    _cur_texts.append(_f[1] if len(_f) > 1 else str(_f))
+                except Exception:
+                    _cur_texts.append(str(_f))
+            for _p7 in _prop_rules:
+                _pat7 = _p7.get("pattern", "")
+                if not _pat7:
+                    continue
+                _pat_core = _pat7.replace("N", "").strip()
+                if any(_pat_core and _pat_core in t for t in _cur_texts):
+                    _occ = _p7.get("occurrences", "?")
+                    _rid = _p7.get("rule_id", "?")
+                    findings.append(("high", "反复模式再次出现",
+                                     f"模式「{_pat7}」在历史中出现 {_occ} 次，当前再次出现 ⇒ 已提议规则 {_rid}",
+                                     "该模式反复出现，应检查根因是否已修复"))
+    except Exception:
+        pass
 # --- 汇总 ---
 sev_rank = {"critical": 0, "high": 1, "info": 2, "low": 3, "ok": 4}
 findings.sort(key=lambda x: sev_rank.get(x[0], 9))
