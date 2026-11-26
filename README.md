@@ -56,6 +56,7 @@
 | `chain-reflect.sh` | **链的自省**（从历史提炼趋势与异常）| 写 state |
 | `chain-decide.sh` | **基于自省做判断**（规则化结论+建议动作）| 写 state |
 | `chain-think.sh` | **让它想一次**（真实模型调用，读自己的历史说一句判断）| 写 state |
+| `chain-think-degraded.sh` | **降级思考**（无模型时用规则提炼判断）| 写 state |
 | `capability-resolve.sh` | **能力包 DAG 解析**（按依赖推导实际能力，不自报）| 写 state |
 | `did-keys.sh` | **门限 DID**（2-of-3 Shamir，单份无用）| 写 state |
 | `lint-secrets.sh` | **敏感文件泄露检查**（git/备份/快照三条路径）| 无 |
