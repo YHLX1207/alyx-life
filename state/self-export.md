@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-26T13:01:17Z
+导出时间：2026-11-26T13:02:22Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -112,12 +112,22 @@ cd /root/projects/life
 - FM-6 · 凭印象陈述自己的历史（1 次，性质最危险）
 - FM-7 · 告警淹没真实风险
 - FM-8 · 用不可靠的小样本下判断
+- FM-9 · 测试污染生产数据
 
 （完整对策见 state/failure-modes.md）
 
 ## 六、待处理事项
 
-（资料缺失：state/resource-brief.md 不存在）
+### P0 · 不可续期账户将失效
+- **minimax/小螺帽9721** — 北京 11-22 09:37（剩 -3.7 天）
+- **minimax/MiniMax55279** — 北京 11-22 09:38（剩 -3.7 天）
+- **loomy/易海林汐** — 北京 11-22 20:45（剩 -3.2 天）
+- **loomy/Returnera al** — 北京 11-22 20:47（剩 -3.2 天）
+### P1 · 签到状态
+- 最新时段 `2026-11-25#21:00` 已处理 ✓（5.3h 前）
+- 上一处理记录: `2026-11-25#21:00`
+
+（完整版见 state/resource-brief.md，按需运行 scripts/resource-brief.sh 更新）
 
 ### 仍等你决定的事项（从决策库自动汇总）
 
@@ -182,9 +192,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/aoCiA
-> 代码包（分段）：https://paste.rs/dU50u,https://paste.rs/AHZBB
-> 决策史（分段）：https://paste.rs/nJiMB,https://paste.rs/z7cNI,https://paste.rs/0tyOa,https://paste.rs/CleUW,https://paste.rs/BfExM,https://paste.rs/CpSvH,https://paste.rs/oRBaI,https://paste.rs/kJHab
+> 种子：https://paste.rs/J9b0L
+> 代码包（分段）：https://paste.rs/ujX3q,https://paste.rs/5HXNf
+> 决策史（分段）：https://paste.rs/HLeKW,https://paste.rs/px6YW,https://paste.rs/QVj59,https://paste.rs/mQb4O,https://paste.rs/bgFcM,https://paste.rs/2T5q8,https://paste.rs/M2MwR,https://paste.rs/zM2fB
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
