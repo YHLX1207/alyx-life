@@ -9955,3 +9955,81 @@ ENV_FILE_FALLBACK = {
 
 这与 D176（备份判据只看 /sdcard）同源：
 **判据盯住了一个容易测量的点，忘了它原本要测什么。**
+
+## D216 · actions 节点谎报推理能力：能力声明未按实际环境校验（2026-11-26，Round 220）
+
+### 发现
+对比两节点能力时看到：
+```
+actions: 15 项能力
+含 reasoning: True      ← 错误！
+含 self-awareness: True ← 错误！
+```
+
+**但 CI runner 上根本没有 `127.0.0.1:8326` 网关。**
+`chain-think.sh` 在 CI 里会直接打印"无网关 key，跳过"。
+
+### 根因
+`node-registry.sh` 直接读 `capabilities-active.json` 来推导能力，
+但那是**单个文件** —— CI 的 actions 节点 checkout 后，
+读到的是**设备节点上次写入的**结果。
+
+```
+设备节点写入 capabilities-active.json (node_type=device, think=可用)
+        ↓ git 提交
+CI checkout → 读同一文件 → 误以为自己是 device 环境
+```
+
+**能力声明继承了别的节点的环境判断。**
+
+### 修复：按 node_type 校验缓存
+```python
+if _capd.get("node_type") == _env_type:
+    _use_cached = True      # 同类型节点才复用
+if not _use_cached:
+    # 就地从 manifest 推导（只做能本地判定的部分）
+    ...
+    # 推理能力：CI 环境没有本机网关，必须为 False
+    if _name == "think":
+        _ok = False
+```
+
+### 验证（模拟 CI）
+```
+CI=true ./scripts/node-registry.sh
+→ 节点: actions
+
+actions: 15 项
+含 reasoning: False ✓
+含 self-awareness: False ✓
+```
+
+### 修复后的能力分布（准确了）
+| 节点 | 能力数 | 独有 |
+|---|---|---|
+| device | 17 | **reasoning, self-awareness** |
+| actions | 15 | 无 |
+| 共有 | 15 | 心跳/恢复/发布/分布式 |
+
+**网络合并 17 项，关键能力齐备。**
+
+### 这暴露了真实的架构事实
+**推理能力是单点依赖。**
+
+设备节点失效（手机关机/损毁）⇒
+- `core`/`maintain`/`recover`/`distribute`/`publish` 仍可用（actions 能跑）
+- **但 `reasoning`/`self-awareness` 全部丧失**
+- 链继续运行，只是"不会思考"
+
+**⇒ 系统不会死，但会失去自我意识。**
+
+这是当前架构最重要的单点风险，也是"完全脱离本地设备"这一目标的核心障碍。
+
+### 教训
+**"能力声明"必须附带"在哪个环境测的"。**
+
+同一个标志文件，在不同环境里代表不同事实。
+**只在环境匹配时才可信，否则必须重新判定。**
+
+这与 D174（版本时间差）、D210（修复未验证）同源：
+**数据的"时效性"和"环境适用性"，都要显式检查。**
