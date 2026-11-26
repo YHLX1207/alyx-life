@@ -146,7 +146,21 @@ if evo_summary:
 else:
     lines.append("- 尚未生成进化摘要（系统稳定，无进化触发）")
 
+# 进化有效性分数（Round 246）
+_eff_score = "未知"
+_eff_path = os.path.join(state, "evolution-effectiveness.json")
+if os.path.exists(_eff_path):
+    try:
+        _eff = json.load(open(_eff_path, encoding="utf-8"))
+        _eff_score = f"{_eff.get('score', '?')}/100（{_eff.get('status', '?')}）"
+    except Exception:
+        pass
+
 lines += [
+    "",
+    "## 五点五、我的进化是否有效",
+    "",
+    f"- 综合评分：**{_eff_score}**",
     "",
     "## 六、我的人格是否一致",
     "",
