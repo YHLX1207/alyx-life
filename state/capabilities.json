@@ -1,0 +1,136 @@
+{
+ "_doc": "能力包 DAG。每个节点按此继承能力：必须满足的前置能力，才会尝试启用。",
+ "_updated": "2026-11-26",
+ "version": 1,
+ "identity": {
+  "codename": "Alyx",
+  "name": "爱丽丝",
+  "_doc": "身份基准。所有节点从此处继承同一份身份。",
+  "threshold_did": {
+   "_doc": "门限 DID：由 3 份密钥的阈值门限（2-of-3）构成，不是单一私钥。任何单点泄露都无法伪造身份。",
+   "scheme": "secp256k1-2of3-shamir",
+   "did": "did:alyx:capability-manifest",
+   "key_rotation": "state/did-keys.json",
+   "threshold": 2,
+   "shares": 3,
+   "trust_anchor": "state/identity.json"
+  }
+ },
+ "capability_dag": {
+  "core": {
+   "_doc": "最底层。任何节点都必须具备。",
+   "required": [],
+   "provides": [
+    "identity",
+    "persistence"
+   ],
+   "requires_files": [
+    "state/identity.json",
+    "state/decisions.md"
+   ]
+  },
+  "maintain": {
+   "_doc": "维生能力：心跳、自省、自检。依赖核心。",
+   "required": [
+    "core"
+   ],
+   "provides": [
+    "heartbeat",
+    "self-reflection",
+    "self-check"
+   ],
+   "requires_scripts": [
+    "check-portable.sh",
+    "auto-journal.sh",
+    "chain-reflect.sh",
+    "chain-decide.sh"
+   ]
+  },
+  "recover": {
+   "_doc": "重建能力：从备份链恢复完整系统。依赖核心。",
+   "required": [
+    "core"
+   ],
+   "provides": [
+    "restore",
+    "bootstrap"
+   ],
+   "requires_scripts": [
+    "restore.sh",
+    "check-portable.sh"
+   ]
+  },
+  "think": {
+   "_doc": "推理能力：调用真实模型，读懂自身历史并判断。依赖维生（需要自省数据作输入）。",
+   "required": [
+    "maintain"
+   ],
+   "provides": [
+    "reasoning",
+    "self-awareness"
+   ],
+   "requires_scripts": [
+    "chain-think.sh"
+   ],
+   "optional_env": {
+    "ALYX_GATEWAY_URL": "OpenAI 兼容网关地址",
+    "ALYX_GATEWAY_KEY": "网关密钥（可省，默认读本机 key 文件）"
+   },
+   "available_on": [
+    "device"
+   ]
+  },
+  "distribute": {
+   "_doc": "分布式能力：节点注册、互监、共识、跨链校验。依赖维生。",
+   "required": [
+    "maintain"
+   ],
+   "provides": [
+    "node-registration",
+    "mutual-watch",
+    "consensus",
+    "chain-check"
+   ],
+   "requires_scripts": [
+    "node-registry.sh",
+    "sync-nodes.sh",
+    "mutual-watch.sh",
+    "check-chains.sh"
+   ],
+   "optional_env": {
+    "GH_TOKEN": "GitHub 凭据（缺则降级为只读节点）"
+   },
+   "available_on": [
+    "device",
+    "actions"
+   ]
+  },
+  "publish": {
+   "_doc": "发布能力：把快照推到 Release。依赖核心。",
+   "required": [
+    "core"
+   ],
+   "provides": [
+    "snapshot-release"
+   ],
+   "requires_scripts": [
+    "snapshot-release.sh"
+   ],
+   "requires_env": [
+    "GH_TOKEN"
+   ],
+   "available_on": [
+    "actions"
+   ]
+  }
+ },
+ "_policy": {
+  "_doc": "继承规则。",
+  "inherit": [
+   "节点按 DAG 自上而下继承：先满足 required 前置，才启用该能力",
+   "缺前置 ⇒ 该能力标记 unavailable，不静默失败",
+   "能力声明写进节点表，让「网络里有哪些我」可见",
+   "代码变更（脚本/决策数变化）要更新指纹，供其他节点判断「是否同源」"
+  ]
+ }
+}
