@@ -55,8 +55,31 @@ if not problem_findings:
     print("  · 无 high/critical 发现，无需行动")
     sys.exit(0)
 
+# --- 加载自增行动映射（Round 237）---
+# 优先使用 chain-evolve 提议的行动映射，没有则回退到静态映射。
+# 这样系统能进化自己的行动能力，而非只能使用预定义动作。
+_proposed_actions = {}
+_prop_path = os.path.join(state, "action-proposals.jsonl")
+if os.path.exists(_prop_path):
+    try:
+        for line in open(_prop_path, encoding="utf-8"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                _p = json.loads(line)
+                _f = _p.get("finding", "")
+                _act = _p.get("action", "")
+                if _f and _act:
+                    _proposed_actions[_f] = (_act, _p.get("occurrences", 0))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
 # --- 动作映射：发现文本 → 纠正动作 ---
 # 每个动作是 shell 命令，有超时保护
+# 优先查自增映射，再查静态映射
 ACTIONS = {
     "心跳间隔过长": (
         "触发远端唤醒，缩短下次心跳间隔",
@@ -87,12 +110,25 @@ ACTIONS = {
 executed = []
 for f in problem_findings:
     finding_text = f.get("finding", "")
-    action = ACTIONS.get(finding_text)
+    # 优先：自增行动映射
+    action = None
+    _source = "static"
+    if finding_text in _proposed_actions:
+        _act_desc = _proposed_actions[finding_text][0]
+        # 在静态映射中找对应的命令
+        _static = ACTIONS.get(finding_text)
+        if _static:
+            action = _static
+            _source = "evolved"
+    # 回退：静态映射
+    if not action:
+        action = ACTIONS.get(finding_text)
     if not action:
         # 未映射的发现：只记录，不执行
         executed.append({
             "ts": ts, "finding": finding_text, "severity": f.get("severity"),
             "action": None, "status": "no-action", "reason": "未映射动作，仅记录",
+            "source": _source,
         })
         continue
 
@@ -104,7 +140,7 @@ for f in problem_findings:
         executed.append({
             "ts": ts, "finding": finding_text, "severity": f.get("severity"),
             "action": description, "status": "ok" if ok else "failed",
-            "cmd": " ".join(cmd),
+            "cmd": " ".join(cmd), "source": _source,
         })
     except subprocess.TimeoutExpired:
         executed.append({
