@@ -1,4 +1,12 @@
 {
+ "device-localhost": {
+  "id": "device-localhost",
+  "first_seen": "2026-11-25T15:48:53Z",
+  "last_seen": "2026-11-26T13:50:30Z",
+  "beats": 41,
+  "kind": "device",
+  "age_hours": 0.0
+ },
  "actions": {
   "id": "actions",
   "first_seen": "2026-11-25T16:05:34Z",
@@ -7,20 +15,12 @@
   "kind": "actions",
   "age_hours": 0.0
  },
- "device-localhost": {
-  "id": "device-localhost",
-  "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-26T13:20:25Z",
-  "beats": 40,
-  "kind": "device",
-  "age_hours": 0.21
- },
  "_summary": {
-  "ts": "2026-11-26T13:32:49Z",
+  "ts": "2026-11-26T13:50:30Z",
   "total_nodes": 2,
   "active_nodes": [
-   "actions",
-   "device-localhost"
+   "device-localhost",
+   "actions"
   ],
   "quorum": "healthy"
  }
