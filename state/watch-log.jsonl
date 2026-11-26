@@ -50,3 +50,4 @@
 {"ts": "2026-11-26T17:13:33Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.38, "beats": 52}], "takeover_needed": false}
 {"ts": "2026-11-26T17:45:04Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.12, "beats": 53}], "takeover_needed": false}
 {"ts": "2026-11-26T18:16:46Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.65, "beats": 53}], "takeover_needed": false}
+{"ts": "2026-11-26T18:48:32Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.44, "beats": 54}], "takeover_needed": false}
