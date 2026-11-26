@@ -120,8 +120,10 @@
     "GH_TOKEN"
    ],
    "available_on": [
+    "device",
     "actions"
-   ]
+   ],
+   "_note": "设备节点通过 state/secrets/github.token 也能发布（实测 snapshot-release 多次成功）"
   }
  },
  "_policy": {
