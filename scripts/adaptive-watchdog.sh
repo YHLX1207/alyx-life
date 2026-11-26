@@ -196,6 +196,11 @@ print(d.get('adb',0), d.get('shz',0))
 
 
 
+
+  # 自我评估（Round 243）：每 40 轮合成完整自我画像。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 60 bash ./self-assess.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 进化状态摘要（Round 241）：每 40 轮感知自身进化程度。
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 60 bash ./evolution-summary.sh >> ../logs/watchdog.log 2>&1 || true ) &
