@@ -25,11 +25,15 @@ MAX_LINES="${2:-500}"
 
 TOKEN="${GH_TOKEN:-}"
 [ -n "$TOKEN" ] || TOKEN=$(cat ../state/secrets/github.token 2>/dev/null || echo "")
-[ -n "$TOKEN" ] || { echo "  无 token，跳过"; exit 0; }
+# ⚠️ 无 token = 无法同步，必须返回非零（Round 228）
+#    此前 exit 0 会让调用方（如 offline-wal.sh）误以为成功，
+#    从而清空待推队列 ⇒ 数据静默丢失。
+[ -n "$TOKEN" ] || { echo "  ✗ 无 token，无法同步"; exit 2; }
 
 REPO="${GITHUB_REPOSITORY:-YHLX1207/alyx-life}"
 
-python3 - "$TOKEN" "$REPO" "$REL_PATH" "$MAX_LINES" <<'PY'
+_rc=0
+python3 - "$TOKEN" "$REPO" "$REL_PATH" "$MAX_LINES" <<'PY' || _rc=$?
 import sys, json, base64, urllib.request, urllib.error, time, os
 
 token, repo, rel_path, max_lines = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
@@ -154,3 +158,5 @@ for attempt in range(5):
 print("  ✗ 重试 5 次仍失败")
 sys.exit(1)
 PY
+
+exit "${_rc:-0}"
