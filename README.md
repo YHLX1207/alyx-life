@@ -59,6 +59,7 @@
 | `chain-act.sh` | **依判断行动**（根据发现执行纠正动作）| 写 state |
 | `chain-eval.sh` | **评估行动效果**（判断行动是否真的解决了问题）| 写 state |
 | `lint-evolution.sh` | **进化管线自检**（确保自我进化链路不静默失效）| 无 |
+| `evolution-summary.sh` | **进化状态摘要**（感知自身进化程度，生成可读摘要）| 写 state |
 | `growth-track.sh` | **量化成长**（计算各维度变化率，判定成长/维持/停滞）| 写 state |
 | `chain-think.sh` | **让它想一次**（真实模型调用，读自己的历史说一句判断）| 写 state |
 | `chain-think-degraded.sh` | **降级思考**（无模型时用规则提炼判断）| 写 state |
