@@ -5,7 +5,6 @@ state/gh520_hosts
 state/gh_cache.json
 state/last_alert.json
 state/last-mutation-test.txt
-state/offsite-seed.jsonl
 # 大文件 / 易变记录
 state/local-archive.tar.gz
 state/history.jsonl
@@ -27,3 +26,8 @@ state/secrets/
 # 运行时计数与告警
 state/iter-count
 state/alerts.md
+
+# ⚠️ 门限 DID 私钥份额：绝不可提交（Round 218 发现）
+#    这是 2-of-3 的私钥份额，泄露 2 份即可冒用身份。
+state/did-keys.json
+state/did-signature.json
