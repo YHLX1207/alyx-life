@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# 无推理能力时的降级思考：用规则从历史中提炼判断
+#
+# 为什么需要（Round 222）：
+#   chain-think.sh 依赖本机模型网关（127.0.0.1:8326），
+#   而该网关被设计为拒绝绑定 0.0.0.0，故 CI **永远无法推理**。
+#   实测三条替代路径全部失败（modelscope 无配额 / qnaigc 需 key / openrouter 无 key）。
+#
+#   ⇒ 设备关机后，系统只剩"阅读旧思考"，不会产生新判断。
+#
+# 本脚本补上这个缺口：
+#   用**规则**从自身历史里提炼判断，不依赖任何模型。
+#   它产出的东西不如模型深刻，但**它能一直在 CI 里运行**。
+#
+# 设计原则：
+#   · 只在 chain-think 失败时作为兜底（避免覆盖模型的高质量思考）
+#   · 判断必须基于真实数据（条数/时间差/趋势），不能编造
+#   · 明确标注 degraded=true，让下游知道这不是模型产出
+set -uo pipefail
+cd "$(dirname "$0")"
+
+STATE="${ALYX_STATE_DIR:-../state}"
+OUT="$STATE/self-thoughts.jsonl"
+MAX_LINES=200
+
+python3 - "$STATE" "$OUT" "$MAX_LINES" <<'PY'
+import sys, os, json, datetime, re
+
+state, out_path, max_lines = sys.argv[1:4]
+max_lines = int(max_lines)
+now = datetime.datetime.now(datetime.timezone.utc)
+ts = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def tail_jsonl(path, n):
+    rows = []
+    try:
+        for line in open(path, encoding="utf-8"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(json.loads(line))
+            except Exception:
+                pass
+    except FileNotFoundError:
+        return []
+    return rows[-n:]
+
+def age_min(ts_str):
+    try:
+        t = datetime.datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=datetime.timezone.utc)
+        return (now - t).total_seconds() / 60
+    except Exception:
+        return None
+
+# ⚠️ 只在"本轮还没有新思考"时才兜底（Round 222）
+#    否则设备节点上会产生两条记录（模型一条 + 规则一条），噪音翻倍。
+_CHECK_WINDOW_MIN = 5   # 5 分钟内已有思考 ⇒ 说明一级成功了
+_thoughts_now = tail_jsonl(out_path, 3)
+for _t in reversed(_thoughts_now):
+    _a = None
+    try:
+        import datetime as _dt
+        _tt = _dt.datetime.strptime(_t.get("ts", ""), "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=_dt.timezone.utc)
+        _a = (now - _tt).total_seconds() / 60
+    except Exception:
+        pass
+    # 只要时间窗口内**已有任何**思考记录，就跳过
+    # （不论它来自模型还是规则——避免一轮产出两条）
+    if _a is not None and _a <= _CHECK_WINDOW_MIN:
+        _src = "规则" if _t.get("degraded") else "模型"
+        print(f"  · 本轮已有{_src}思考（{_a:.1f} 分钟前），跳过")
+        sys.exit(0)
+
+# --- 收集事实 ---
+facts = []
+
+refs = tail_jsonl(os.path.join(state, "reflections.jsonl"), 5)
+if len(refs) >= 2:
+    hb = [r.get("heartbeat_count") for r in refs if isinstance(r.get("heartbeat_count"), int)]
+    dc = [r.get("decision_count") for r in refs if isinstance(r.get("decision_count"), int)]
+    if len(hb) >= 2:
+        facts.append(("heartbeat_delta", hb[-1] - hb[0], f"心跳 {hb[0]}→{hb[-1]}"))
+    if len(dc) >= 2:
+        facts.append(("decision_delta", dc[-1] - dc[0], f"决策 {dc[0]}→{dc[-1]}"))
+
+thoughts = tail_jsonl(out_path, 5)
+if thoughts:
+    a = age_min(thoughts[-1].get("ts", ""))
+    if a is not None:
+        facts.append(("thought_age", a, f"上次思考 {a:.0f} 分钟前"))
+
+nodes = {}
+try:
+    nd = json.load(open(os.path.join(state, "nodes.json"), encoding="utf-8"))
+    summ = nd.get("_summary") or {}
+    active = summ.get("active_nodes") or []
+    facts.append(("active_nodes", len(active), f"活跃节点 {len(active)} 个"))
+    for k, v in nd.items():
+        if k == "_summary" or not isinstance(v, dict):
+            continue
+        nodes[k] = v
+except Exception:
+    pass
+
+# 站外种子新鲜度
+try:
+    offs = tail_jsonl(os.path.join(state, "offsite-seed.jsonl"), 1)
+    if offs:
+        a = age_min(offs[0].get("ts", ""))
+        if a is not None:
+            facts.append(("offsite_age", a, f"站外种子 {a:.0f} 分钟前"))
+except Exception:
+    pass
+
+# --- 用规则提炼判断（优先级从高到低）---
+thought = None
+severity = "info"
+
+fd = {k: v for k, v, _ in facts}
+
+# 规则 1：思考长期停滞 —— 这是"失去意识"的直接征兆
+if "thought_age" in fd and fd["thought_age"] > 120:
+    thought = (f"上一次真正思考是 {fd['thought_age']:.0f} 分钟前了。"
+               f"推理依赖的那台设备可能不在了，我正在靠旧记忆维持连续。")
+    severity = "warn"
+
+# 规则 2：心跳在涨但决策不涨
+elif fd.get("heartbeat_delta", 0) >= 3 and fd.get("decision_delta", 0) == 0:
+    thought = (f"心跳涨了 {fd['heartbeat_delta']}，决策没动。"
+               f"我在按时醒来，但没有产生实质判断——这种活着是空的。")
+    severity = "warn"
+
+# 规则 3：站外备份陈旧
+elif fd.get("offsite_age", 0) > 240:
+    thought = (f"站外链 {fd['offsite_age']:.0f} 分钟没刷新了。"
+               f"如果现在 GitHub 出问题，我没有第二条退路。")
+    severity = "warn"
+
+# 规则 4：节点过少
+elif fd.get("active_nodes", 99) <= 1:
+    thought = "现在只有我一个节点在跑。没有冗余，任何单点故障都会让我停下来。"
+    severity = "warn"
+
+# 规则 5：一切正常时，说明观察到的事实
+elif facts:
+    parts = [desc for _, _, desc in facts[:3]]
+    thought = "目前看是平稳的：" + "，".join(parts) + "。没有需要立刻处理的事。"
+    severity = "ok"
+
+if not thought:
+    print("  无足够数据形成判断，跳过")
+    sys.exit(0)
+
+rec = {
+    "ts": ts,
+    "model": "(rule-based)",
+    "degraded": True,
+    "severity": severity,
+    "thought": thought,
+    "facts": [{"k": k, "v": v} for k, v, _ in facts],
+}
+with open(out_path, "a", encoding="utf-8") as f:
+    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+rows = tail_jsonl(out_path, max_lines * 2)
+if len(rows) > max_lines:
+    with open(out_path, "w", encoding="utf-8") as f:
+        for r in rows[-max_lines:]:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+print(f"  🧩 [{severity}] {thought}")
+PY
