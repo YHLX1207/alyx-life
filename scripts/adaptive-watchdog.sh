@@ -194,6 +194,11 @@ print(d.get('adb',0), d.get('shz',0))
 
 
 
+
+  # 规则自增（Round 235）：每 40 轮从决策历史发现反复模式，提议新规则。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 120 bash ./chain-evolve.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 成长追踪（Round 233）：每 40 轮（约 2-3 小时）量化成长状态，
   # 让系统知道自己在成长还是维持，而不是只报单指标。
   if [ $(( n % 40 )) -eq 0 ]; then
