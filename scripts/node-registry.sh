@@ -46,12 +46,60 @@ if os.path.exists(REG):
         nodes = {}
 
 prev = nodes.get(nid) or {}
+# ⚠️ 能力声明（Round 217）：用户要求"每个节点都是你，但也都不是你"。
+#    推理能力依赖本机网关（127.0.0.1:8326），不同节点能力不同。
+#    **诚实声明"我在这个网络里是什么角色"，比假装全能更有用。**
+_caps = []
+# 推理：网关可达 + key 存在
+_gw_key = os.environ.get("ALYX_GATEWAY_KEY") or ""
+if not _gw_key:
+    try:
+        _gw_key = open("/root/projects/.dsh/openai-gateway/api-key", encoding="utf-8").read().strip()
+    except Exception:
+        _gw_key = ""
+if _gw_key:
+    try:
+        import urllib.request as _ur2
+        _req2 = _ur2.Request(
+            (os.environ.get("ALYX_GATEWAY_URL") or "http://127.0.0.1:8326/v1") + "/models",
+            headers={"Authorization": f"Bearer {_gw_key}", "User-Agent": "alyx"})
+        _ur2.urlopen(_req2, timeout=5).read(64)
+        _caps.append("reason")
+    except Exception:
+        pass
+# 维生：脚本齐全
+try:
+    if os.path.exists("./check-portable.sh"):
+        _caps.append("maintain")
+except Exception:
+    pass
+# ⚠️ 能力以 DAG 解析结果为准（Round 217）
+#    自报能力可能与事实不符；按 capabilities.json 推导不会说谎。
+try:
+    _cap_path = os.path.join(STATE, "capabilities-active.json")
+    if os.path.exists(_cap_path):
+        _capd = json.load(open(_cap_path, encoding="utf-8"))
+        _res = _capd.get("capabilities") or {}
+        for _n, _r in _res.items():
+            if isinstance(_r, dict) and _r.get("available"):
+                for _p in (_r.get("provides") or []):
+                    if _p not in _caps:
+                        _caps.append(_p)
+except Exception:
+    pass
+# 推送：有 token
+if os.environ.get("GH_TOKEN") or os.path.exists(os.path.join(STATE, "secrets", "github.token")):
+    _caps.append("push")
+if not _caps:
+    _caps.append("readonly")
+
 rec = {
     "id": nid,
     "first_seen": prev.get("first_seen") or now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "last_seen": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "beats": (prev.get("beats") or 0) + 1,
     "kind": "actions" if os.environ.get("CI") else "device",
+    "caps": sorted(_caps),
 }
 nodes[nid] = rec
 
