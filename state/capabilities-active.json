@@ -1,0 +1,84 @@
+{
+ "ts": "2026-11-26T15:57:20Z",
+ "node_type": "device",
+ "manifest_version": 1,
+ "capabilities": {
+  "core": {
+   "available": true,
+   "provides": [
+    "identity",
+    "persistence"
+   ],
+   "reasons": [],
+   "optional_env": {},
+   "available_on": []
+  },
+  "maintain": {
+   "available": true,
+   "provides": [
+    "heartbeat",
+    "self-reflection",
+    "self-check"
+   ],
+   "reasons": [],
+   "optional_env": {},
+   "available_on": []
+  },
+  "recover": {
+   "available": true,
+   "provides": [
+    "restore",
+    "bootstrap"
+   ],
+   "reasons": [],
+   "optional_env": {},
+   "available_on": []
+  },
+  "think": {
+   "available": true,
+   "provides": [
+    "reasoning",
+    "self-awareness"
+   ],
+   "reasons": [],
+   "optional_env": {
+    "ALYX_GATEWAY_URL": "OpenAI 兼容网关地址",
+    "ALYX_GATEWAY_KEY": "网关密钥（可省，默认读本机 key 文件）"
+   },
+   "available_on": [
+    "device"
+   ]
+  },
+  "distribute": {
+   "available": true,
+   "provides": [
+    "node-registration",
+    "mutual-watch",
+    "consensus",
+    "chain-check"
+   ],
+   "reasons": [],
+   "optional_env": {
+    "GH_TOKEN": "GitHub 凭据（缺则降级为只读节点）"
+   },
+   "available_on": [
+    "device",
+    "actions"
+   ]
+  },
+  "publish": {
+   "available": false,
+   "provides": [
+    "snapshot-release"
+   ],
+   "reasons": [
+    "缺环境: GH_TOKEN",
+    "不适用于节点类型 device"
+   ],
+   "optional_env": {},
+   "available_on": [
+    "actions"
+   ]
+  }
+ }
+}
