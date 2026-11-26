@@ -93,8 +93,19 @@ if os.environ.get("GH_TOKEN") or os.path.exists(os.path.join(STATE, "secrets", "
 if not _caps:
     _caps.append("readonly")
 
+# 门限 DID（Round 218）：让每个节点带着 DID 声明自己的身份
+_did = None
+try:
+    _didf = os.path.join(STATE, "did-keys.json")
+    if os.path.exists(_didf):
+        _d = json.load(open(_didf, encoding="utf-8"))
+        _did = _d.get("did")
+except Exception:
+    pass
+
 rec = {
     "id": nid,
+    "did": _did,
     "first_seen": prev.get("first_seen") or now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "last_seen": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "beats": (prev.get("beats") or 0) + 1,
