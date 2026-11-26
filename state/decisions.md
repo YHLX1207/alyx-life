@@ -9803,3 +9803,85 @@ did-keys.json 含 3 份私钥份额
 
 **新引入的敏感数据，必须同时纳入已有的所有泄露路径检查**——
 .gitignore、快照打包、备份、seed 上传。
+
+## D214 · 泄露路径普查：发现 tar --exclude 的静默失效（2026-11-26，Round 219）
+
+### 上轮的教训驱动本轮
+D213 学到的："新引入的敏感数据，必须同时纳入已有的所有泄露路径检查。"
+本轮系统检查 **三条泄露路径**：git / 备份(/sdcard) / 快照(Release)。
+
+### 发现的真实漏洞：backup-workspace.sh
+```
+tar -C .. scripts state notes   ← 整目录打包
+→ 含 state/secrets/（GitHub token）
+→ 含 state/did-keys.json（DID 私钥份额）
+→ 推送到 /sdcard/DSHBox-Alyx/workspace-*.tar.gz
+```
+
+**/sdcard 虽非公开，但备份文件可能被同步/分享/上传。**
+修复：加入 `--exclude` 规则。
+
+### 但修复时踩到一个更隐蔽的坑
+第一次写：
+```bash
+--exclude='./state/did-keys.json'
+```
+**实测不生效！** 打包后 did-keys.json 仍在包里。
+
+**根因**：`tar -C ..` 之后，归档内路径是 `state/did-keys.json`，
+**没有 `./` 前缀**，所以带 `./` 的模式匹配不上。
+
+实测对照：
+| 写法 | 是否生效 |
+|---|---|
+| `--exclude='./state/did-keys.json'` | ✗ 不生效 |
+| `--exclude='state/did-keys.json'` | ✓ 生效 |
+| `--exclude='*/did-keys.json'` | ✓ 生效 |
+
+**⇒ 看起来有防护，实际没有。这比没写防护更危险。**
+
+### 修复后验证
+```
+✓ 备份已排除: did-keys.json
+✓ 备份已排除: did-signature.json
+✓ 备份已排除: secrets/github
+✓ 备份已排除: watchdog.pid
+✓ 保留实现脚本 scripts/did-keys.sh（恢复需要）
+```
+
+### 固化：`lint-secrets.sh`
+四层检查：
+1. **git 层**：敏感文件是否被跟踪 / 是否被忽略
+2. **静态模式**：所有脚本里是否有 `--exclude='./state/...'` 这类失效写法
+3. **动态验证**：用 backup-workspace 的真实参数实际打包，检查敏感文件
+4. **快照剔除**：snapshot-release 的 rm 路径是否覆盖全部敏感文件
+
+变异测试：故意把排除改回错误写法 →
+```
+✗ backup-workspace.sh 用了 './' 前缀（排除会失效）
+✗ 发现 2 处风险
+```
+**能正确抓出。**
+
+已接入回归（第 40 项，全绿）。
+
+### 顺带修复的自匹配
+`lint-secrets.sh` 首次运行时**把自己注释里的反例当成了真实代码**。
+修复：跳过自身文件 + 只查非注释行。
+（这是 D178/D203 同类问题的又一次出现。）
+
+### 三条路径最终状态
+| 路径 | 状态 |
+|---|---|
+| git | ✓ 已忽略，未被跟踪 |
+| /sdcard 备份 | ✓ 已排除（修复后验证）|
+| Release 快照 | ✓ 已剔除（上轮 + 本轮验证）|
+| 远端仓库 | ✓ HTTP 404 |
+
+### 教训
+**排除规则写错时，不会报错，只会静默失效。**
+
+这比"忘记写"更危险：忘记写时你会知道有风险；
+写错了却以为已防护，**风险被一层假象盖住**。
+
+**任何"排除"都要用实际产物验证，不能只看代码里有那一行。**
