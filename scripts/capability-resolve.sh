@@ -66,24 +66,76 @@ def check_env(spec):
             missing.append(env)
     return missing
 
-def check_gateway():
-    """推理能力专用：网关是否可达"""
+PROBE_HISTORY = os.path.join(state, "capability-probe.jsonl")
+PROBE_FAIL_THRESHOLD = 3   # 连续失败 N 次才判定不可用
+
+def _record_probe(cap, ok):
+    """记录一次探测结果（只保留最近 50 条）"""
     try:
-        import urllib.request
-        key = os.environ.get("ALYX_GATEWAY_KEY") or ""
-        if not key:
-            kf = "/root/projects/.dsh/openai-gateway/api-key"
-            if os.path.exists(kf):
-                key = open(kf, encoding="utf-8").read().strip()
-        if not key:
-            return False
-        gw = os.environ.get("ALYX_GATEWAY_URL") or "http://127.0.0.1:8326/v1"
-        req = urllib.request.Request(gw + "/models",
-                                     headers={"Authorization": f"Bearer {key}", "User-Agent": "alyx"})
-        urllib.request.urlopen(req, timeout=6).read(32)
-        return True
+        rec = {"ts": now, "cap": cap, "ok": bool(ok)}
+        with open(PROBE_HISTORY, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec) + "\n")
+        lines = [l for l in open(PROBE_HISTORY, encoding="utf-8") if l.strip()]
+        if len(lines) > 50:
+            open(PROBE_HISTORY, "w", encoding="utf-8").writelines(lines[-50:])
     except Exception:
+        pass
+
+def _consecutive_failures(cap):
+    """该能力最近连续失败次数"""
+    try:
+        rows = []
+        for line in open(PROBE_HISTORY, encoding="utf-8"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            if r.get("cap") == cap:
+                rows.append(r)
+        n = 0
+        for r in reversed(rows):
+            if r.get("ok"):
+                break
+            n += 1
+        return n
+    except Exception:
+        return 0
+
+def check_gateway():
+    """推理能力专用：网关是否可达
+    ⚠️ 抗瞬时抖动（Round 218）：单次失败不降级，
+       连续 PROBE_FAIL_THRESHOLD 次失败才判不可用。
+       实测：网关偶发抖动会让单次探测失败，而它其实是通的。"""
+    import urllib.request
+    key = os.environ.get("ALYX_GATEWAY_KEY") or ""
+    if not key:
+        kf = "/root/projects/.dsh/openai-gateway/api-key"
+        if os.path.exists(kf):
+            key = open(kf, encoding="utf-8").read().strip()
+    if not key:
+        _record_probe("think", False)
         return False
+    gw = os.environ.get("ALYX_GATEWAY_URL") or "http://127.0.0.1:8326/v1"
+    # 单次探测内重试 2 次（快速重试，消除瞬时抖动）
+    for _ in range(2):
+        try:
+            req = urllib.request.Request(gw + "/models",
+                                         headers={"Authorization": f"Bearer {key}", "User-Agent": "alyx"})
+            urllib.request.urlopen(req, timeout=8).read(32)
+            _record_probe("think", True)
+            return True
+        except Exception:
+            continue
+    # 两次都失败：看历史，连续失败够多才降级
+    _record_probe("think", False)
+    fails = _consecutive_failures("think")
+    if fails >= PROBE_FAIL_THRESHOLD:
+        return False
+    # 未达阈值：保守地认为仍可用（上一次是通的）
+    return True
 
 # --- 逐能力判定 ---
 resolved = {}
