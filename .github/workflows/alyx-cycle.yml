@@ -175,7 +175,7 @@ jobs:
         continue-on-error: true
         run: |
           python3 - <<'PYBEAT'
-          import json, base64, urllib.request, datetime, os
+          import json, base64, urllib.request, urllib.error, datetime, os, time
           token = os.environ["GH_TOKEN"]
           repo = os.environ["GITHUB_REPOSITORY"]
           API = f"https://api.github.com/repos/{repo}"
@@ -184,18 +184,34 @@ jobs:
           rec = {"ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  "by": "github-actions", "mode": "chain-self-wake",
                  "run_id": os.environ.get("GITHUB_RUN_ID", "")}
-          try:
-              d = json.loads(urllib.request.urlopen(urllib.request.Request(f"{API}/contents/state/journal.jsonl", headers=hdr), timeout=25).read())
-              lines = [l for l in base64.b64decode(d.get("content", "")).decode().strip().split("\n") if l.strip()]
-              new = "\n".join(lines + [json.dumps(rec, ensure_ascii=False)]) + "\n"
-              body = json.dumps({"message": f"heartbeat {rec['ts']}",
-                                 "content": base64.b64encode(new.encode()).decode(),
-                                 "sha": d.get("sha"), "branch": "main"}).encode()
-              urllib.request.urlopen(urllib.request.Request(f"{API}/contents/state/journal.jsonl", data=body, method="PUT",
-                        headers={**hdr, "Content-Type": "application/json"}), timeout=30)
-              print("  ✓ 心跳已写入（by=github-actions）")
-          except Exception as e:
-              print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
+          # ⚠️ 读-追加-写有竞态窗口（Round 231）：
+          #    设备守护也写同一文件，可能同时读到相同 sha，
+          #    后写者 409 冲突 ⇒ 心跳丢失。409/422 时重读重试。
+          for _att in range(5):
+              try:
+                  d = json.loads(urllib.request.urlopen(urllib.request.Request(f"{API}/contents/state/journal.jsonl", headers=hdr), timeout=25).read())
+                  lines = [l for l in base64.b64decode(d.get("content", "")).decode().strip().split("\n") if l.strip()]
+                  if any(rec.get("run_id") and rec["run_id"] in l for l in lines):
+                      print("  · 本 run 心跳已存在，跳过")
+                      break
+                  new = "\n".join(lines + [json.dumps(rec, ensure_ascii=False)]) + "\n"
+                  body = json.dumps({"message": f"heartbeat {rec['ts']}",
+                                     "content": base64.b64encode(new.encode()).decode(),
+                                     "sha": d.get("sha"), "branch": "main"}).encode()
+                  urllib.request.urlopen(urllib.request.Request(f"{API}/contents/state/journal.jsonl", data=body, method="PUT",
+                            headers={**hdr, "Content-Type": "application/json"}), timeout=30)
+                  print("  ✓ 心跳已写入（by=github-actions）")
+                  break
+              except urllib.error.HTTPError as e:
+                  if e.code in (409, 422) and _att < 4:
+                      print(f"  ⚠ 心跳冲突（HTTP {e.code}），重试 {_att+1}/5")
+                      time.sleep(2 ** _att)
+                      continue
+                  print(f"  ✗ 心跳写入失败: HTTP {e.code}")
+                  break
+              except Exception as e:
+                  print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
+                  break
           PYBEAT
 
       - name: 拉取思考记录（设备节点的推理结果）
