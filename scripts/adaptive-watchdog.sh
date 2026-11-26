@@ -197,6 +197,11 @@ print(d.get('adb',0), d.get('shz',0))
 
 
 
+
+  # 进化有效性评估（Round 246）：每 40 轮衡量进化的实际价值。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 60 bash ./evolution-effectiveness.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 自我评估（Round 243）：每 40 轮合成完整自我画像。
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 60 bash ./self-assess.sh >> ../logs/watchdog.log 2>&1 || true ) &
