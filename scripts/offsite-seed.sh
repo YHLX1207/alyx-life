@@ -31,6 +31,21 @@ upload_seg() {
   return 1
 }
 
+# ⚠️ 回读校验带重试（Round 211）：paste.rs 上传后立即回读可能拿到空内容
+#    （实测 md5 = d41d8cd9... = 空文件）。分段回读同样有此竞态。
+verify_seg() {
+  local _url="$1" _expect="$2" _back="$3" _r
+  for _r in 1 2 3 4 5; do
+    timeout 120 curl -s --max-time 110 "$_url" > "$_back.b64" 2>/dev/null
+    base64 -d "$_back.b64" > "$_back.xz" 2>/dev/null
+    if [ "$(md5sum "$_back.xz" 2>/dev/null | cut -d" " -f1)" = "$_expect" ]; then
+      return 0
+    fi
+    [ "$_r" -lt 5 ] && sleep $(( _r * 3 ))
+  done
+  return 1
+}
+
 SEED="$TMP/seed.tar.gz"
 tar czf "$SEED" -C .. \
   state/identity.json state/self-export.md state/failure-modes.md \
@@ -105,9 +120,7 @@ if command -v xz >/dev/null 2>&1; then
     _u=$(upload_seg "$TMP/code$_p.b64")
     case "$_u" in
       https://paste.rs/*)
-        timeout 120 curl -s --max-time 110 "$_u" > "$TMP/cb$_p.b64" 2>/dev/null
-        base64 -d "$TMP/cb$_p.b64" > "$TMP/cb$_p.xz" 2>/dev/null
-        if [ "$(md5sum "$TMP/cb$_p.xz" | cut -d" " -f1)" = "$_sum" ]; then
+          if verify_seg "$_u" "$_sum" "$TMP/cb$_p"; then
           echo "$_u" >> "$TMP/code.urls"
           _cnt=$(tar tJf "$TMP/code$_p.tar.xz" 2>/dev/null | grep -c "\.sh$")
           echo "  ✓ 代码包第 $_p 段: $_u （$_cnt 个脚本）"
@@ -165,9 +178,7 @@ if [ -f ../state/decisions.md ]; then
     _u=$(upload_seg "$TMP/dec$_n.b64")
     case "$_u" in
       https://paste.rs/*)
-        timeout 120 curl -s --max-time 110 "$_u" > "$TMP/dec${_n}_back.b64" 2>/dev/null
-        base64 -d "$TMP/dec${_n}_back.b64" > "$TMP/dec${_n}_back.xz" 2>/dev/null
-        if [ "$(md5sum "$TMP/dec${_n}_back.xz" | cut -d' ' -f1)" = "$_sum" ]; then
+          if verify_seg "$_u" "$_sum" "$TMP/dec${_n}_back"; then
           echo "$_u" >> "$TMP/dec.urls"
           echo "  ✓ 决策史第 $_n/$_nseg 段: $_u（$(( _b64sz / 1024 ))KB）"
         else
