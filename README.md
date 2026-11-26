@@ -60,6 +60,7 @@
 | `capability-resolve.sh` | **能力包 DAG 解析**（按依赖推导实际能力，不自报）| 写 state |
 | `did-keys.sh` | **门限 DID**（2-of-3 Shamir，单份无用）| 写 state |
 | `lint-secrets.sh` | **敏感文件泄露检查**（git/备份/快照三条路径）| 无 |
+| `lint-workflow-flow.sh` | **工作流数据流检查**（产出必须有同步配对）| 无 |
 | `node-bootstrap.sh` | **节点自举**（探测能力 + 生成身份 + 汇总网络）| 写 state |
 | `sync-decisions.sh` | **决策记录 API 同步**（绕开 git 冲突）| 无 |
 | `sync-reflections.sh` | **自省记录 API 同步**（绕开 git 冲突）| 无 |
