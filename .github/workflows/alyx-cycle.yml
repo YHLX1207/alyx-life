@@ -173,6 +173,13 @@ jobs:
         #    提议的规则写入 rule-proposals.jsonl，由 chain-decide 在下一轮自动应用。
         continue-on-error: true
         run: bash scripts/chain-evolve.sh
+
+      - name: 依判断行动（发现问题即纠正）
+        # ⚠️ 目标要求"自主思考与行动"。此前链-decide 只报告问题，
+        #    链的步骤固定，发现问题后不针对该问题采取行动。
+        #    chain-act.sh 读取决策中的 high/critical 发现，执行对应纠正动作。
+        continue-on-error: true
+        run: bash scripts/chain-act.sh
       - name: 同步互监日志（通用 JSONL 同步）
       # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
         env:
