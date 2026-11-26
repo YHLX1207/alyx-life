@@ -271,6 +271,12 @@ jobs:
         continue-on-error: true
         run: bash scripts/sync-jsonl.sh state/self-thoughts.jsonl 200
 
+      - name: 模型健康检查（感知思考模型的可靠性）
+        # 探测候选模型的可用性和历史成功率，生成排名，供 chain-think 使用。
+        # 让思考能力也能自我进化——根据实际表现调整用哪些模型。
+        continue-on-error: true
+        run: bash scripts/model-health.sh
+
       - name: 让它想一次（真实模型调用）
         # ⚠️ 链此前只跑预写死的 if-then 规则，没有任何推理（Round 216 发现）。
         #    本机有 OpenAI 兼容网关（127.0.0.1:8326，395 模型），
