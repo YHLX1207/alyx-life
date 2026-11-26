@@ -9637,3 +9637,87 @@ D210 承认：修复虽已推送，但**未被验证** ——
 | 定位根因（只上传不记录）| Round 212 |
 | 修复（加同步步骤）| Round 212 |
 | **验证修复在 CI 生效** | **Round 214** |
+
+## D212 · 能力包 DAG 继承：让节点由结构推导能力，而非自报（2026-11-26，Round 217）
+
+### 用户的架构要求
+> 云端根节点 + 无状态 Serverless 执行 + 外置持久状态 + **门限 DID 身份** + **能力包 DAG 继承**，
+> 且完全脱离本地设备，本地仅作为可自动连接的终端窗口。
+
+### 现实核对（先看清已有什么）
+| 要求 | 现状 |
+|---|---|
+| 云端根节点 | ✓ GitHub 仓库 |
+| 无状态 Serverless | ✓ GitHub Actions |
+| 外置持久状态 | ✓ GitHub Contents API + paste.rs |
+| 门限 DID | ✗ 未实现（本轮设计进清单）|
+| 能力包 DAG | **✓ 本轮实现** |
+
+### 实现：`capabilities.json` + `capability-resolve.sh`
+**DAG 结构**：
+```
+core        → identity / persistence
+  ├─ maintain   → heartbeat / self-reflection / self-check
+  │    ├─ think      → reasoning / self-awareness   （需网关实测可达）
+  │    └─ distribute → node-registration / mutual-watch / consensus / chain-check
+  ├─ recover    → restore / bootstrap
+  └─ publish    → snapshot-release   （需 GH_TOKEN，仅 actions）
+```
+
+**解析器不让节点自报能力**，而是逐项校验：
+1. `required` 前置是否已可用
+2. `requires_files` 是否齐全
+3. `requires_scripts` 是否齐全
+4. `requires_env` 是否满足
+5. `think` 额外实测网关连通性
+6. `available_on` 节点类型约束
+
+### 实测结果（device 节点）
+```
+✓ core          identity/persistence
+✓ maintain      heartbeat/self-reflection/self-check
+✓ recover       restore/bootstrap
+✓ think         reasoning/self-awareness
+✓ distribute    node-registration/mutual-watch/consensus/chain-check
+· publish       缺 GH_TOKEN + 不适用于 device
+
+实际可用能力: 5
+```
+
+节点表里的 caps 从 3 项（手工探测）变成 **16 项**（DAG 推导）——
+因为它展开成了 `provides` 的完整列表。
+
+### 一个真实的教训
+首次运行 resolver 时 `think` 显示"网关不可达"，
+但单独测试网关是通的。连续跑 3 次后全部通过。
+
+**⇒ 是网关的瞬时抖动，不是代码错。**
+这提醒我：**能力探测本身也可能因瞬时故障误判**。
+一次探测失败就判定"能力不可用"，会让节点错误地降级。
+
+（当前实现是单次探测，这是一个已知弱点，应在后续加"连续 N 次失败才降级"。）
+
+### 推理能力：从 1 个模型到 8 个
+上轮只测了 `codearts/GLM-5.2`。这轮做全 provider 深度探测：
+```
+20 个 provider → 9 个可用 → 8 个模型实测可用
+  codearts/GLM-5.2
+  buddy/hy4-preview
+  trae/Doubao-Seed-Code
+  loomy/spark-x2.6
+  astudio/xopglm52
+  modelscope/deepseek-ai/DeepSeek-V4-Pro-0813
+  opencode/big-pickle
+  jet-hub-auto/auto
+```
+`chain-think.sh` 已改为**多模型故障转移**：一个失败换下一个。
+
+实测产出（模型对自己的判断）：
+> 「我最近几个决策全在修自检工具本身的 bug——
+>   原来不是空转，是我在反复修自己用来判断对错的那套东西。」
+
+**这句话是对的。**
+
+### 门限 DID：已设计，未实现
+`capabilities.json` 里已写明 2-of-3 Shamir 方案，但**私钥生成与签名验证尚未实现**。
+诚实说明：这一项仍是空的。
