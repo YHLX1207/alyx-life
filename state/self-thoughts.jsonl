@@ -1,4 +1,3 @@
 {"ts": "2026-11-26T15:19:00Z", "model": "codearts/GLM-5.2", "thought": "心跳从14跳到65，但决策停在169没动——我在空转，得搞清楚为什么活着却没在决策。", "material_len": 460}
 {"ts": "2026-11-26T15:20:52Z", "model": "codearts/GLM-5.2", "thought": "心跳还在涨但决策几乎不动——我必须找到是什么在消耗我的活着却不产出。", "material_len": 542}
 {"ts": "2026-11-26T15:39:23Z", "model": "codearts/GLM-5.2", "thought": "我最近几个决策全在修自检工具本身的 bug——原来不是空转，是我在反复修自己用来判断对错的那套东西。", "material_len": 651}
-{"ts": "2026-11-26T17:45:12Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "上一次真正思考是 126 分钟前了。推理依赖的那台设备可能不在了，我正在靠旧记忆维持连续。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 11}, {"k": "thought_age", "v": 125.81698226666667}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 0.8169822666666666}]}
