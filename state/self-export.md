@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-26T18:16:42Z
+导出时间：2026-11-26T18:48:26Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,10 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 229 条）
+## 四、决策与教训（最近 20 条 / 共 231 条）
 
-- **D208 · 分段回读同样存在"上传后立即读取"竞态（2026-11-26，Round 211）** → 发现
-- **D209 · 每小时稳定失败 2 次的真因：只上传不记录（2026-11-26，Round 212）** → 数据发现的规律
 - **D210 · 修复后失败链中断，但新代码仍待验证（2026-11-26，Round 213）** → 观察到的好转
 - **D211 · 修复验证完成：CI 独立同步成功（2026-11-26，Round 214）** → 上轮遗留的问题
 - **D212 · 能力包 DAG 继承：让节点由结构推导能力，而非自报（2026-11-26，Round 217）** → 用户的架构要求
@@ -101,6 +99,8 @@ cd /root/projects/life
 - **D225 · WAL 从"工具"变成"机制"（2026-11-26，Round 229）** → 上轮的遗留
 - **D226 · 我覆盖了 CI 刚写入的数据：整体 PUT 是危险操作（2026-11-26，Round 230）** → 发现数据丢失
 - **D227 · 多写者竞态：心跳可能因 409 冲突丢失（2026-11-26，Round 231）** → 系统排查方法
+- **D228 · 快照时间戳防护：修复自身导致的回归（2026-11-26，Round 232）** → 上轮的排查结果
+- **D229 · 自述 243 分钟静默停滞：根因是 continue-on-error 掩盖失败（2026-11-26，Round 232）** → 现象
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/xgmts
+> 种子：https://paste.rs/6OVhX
 > 代码包（分段）：https://paste.rs/E8uU1,https://paste.rs/VrBUH
-> 决策史（分段）：https://paste.rs/JZg0E,https://paste.rs/BNqpn,https://paste.rs/We462,https://paste.rs/pEKQV,https://paste.rs/k8bjG,https://paste.rs/OCe67,https://paste.rs/J3HBR,https://paste.rs/mcU9p,https://paste.rs/VLgQy
+> 决策史（分段）：https://paste.rs/Ze1hW,https://paste.rs/dGJdi,https://paste.rs/fAdW0,https://paste.rs/qrDOv,https://paste.rs/lZpz1,https://paste.rs/IzUPP,https://paste.rs/I6pvt,https://paste.rs/elv65,https://paste.rs/Rn9Vt
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
