@@ -55,6 +55,7 @@
 | `ensure-self.sh` | **醒来时的一键自愈**（守护/远端/自检）| 可能拉起守护 |
 | `chain-reflect.sh` | **链的自省**（从历史提炼趋势与异常）| 写 state |
 | `chain-decide.sh` | **基于自省做判断**（规则化结论+建议动作）| 写 state |
+| `chain-think.sh` | **让它想一次**（真实模型调用，读自己的历史说一句判断）| 写 state |
 | `sync-decisions.sh` | **决策记录 API 同步**（绕开 git 冲突）| 无 |
 | `sync-reflections.sh` | **自省记录 API 同步**（绕开 git 冲突）| 无 |
 | `node-registry.sh` | **节点注册表**（多节点心跳与共识）| 写 state |
