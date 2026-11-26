@@ -193,6 +193,11 @@ jobs:
         # 汇总本轮进化产出，生成可读摘要，让系统和接手者能快速理解进化状态。
         continue-on-error: true
         run: bash scripts/evolution-summary.sh
+
+      - name: 自我评估（合成完整自我画像）
+        # 汇总所有自我测量，合成一份完整的自我画像，让接手者能快速理解"我是谁、我在做什么、我怎么样"。
+        continue-on-error: true
+        run: bash scripts/self-assess.sh
       - name: 同步互监日志（通用 JSONL 同步）
       # watch-log 每轮都变，走 git 会被 rebase 丢弃（同 reflections 的教训）。
         env:
