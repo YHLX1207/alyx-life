@@ -167,6 +167,14 @@ jobs:
 
 
 
+      - name: 评估行动效果（判断行动是否真的解决了问题）
+        # ⚠️ 此前进化只能从"行动被执行了多少次"学习，不知道行动是否有效。
+        #    一个行动可能执行了 10 次但问题每次都复发。
+        #    chain-eval.sh 检查行动后问题是否复发，判定 effective/ineffective，
+        #    供 chain-evolve 优先提议有效的行动映射。
+        continue-on-error: true
+        run: bash scripts/chain-eval.sh
+
       - name: 规则自增（从自身历史发现反复模式）
         # ⚠️ 目标要求"自我进化"。此前决策规则全部预写死，系统只能执行不能进化。
         #    chain-evolve.sh 从决策历史中统计反复出现的问题模式，提议新规则。
