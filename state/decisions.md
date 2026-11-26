@@ -9885,3 +9885,73 @@ tar -C .. scripts state notes   ← 整目录打包
 写错了却以为已防护，**风险被一层假象盖住**。
 
 **任何"排除"都要用实际产物验证，不能只看代码里有那一行。**
+
+## D215 · 能力判定应以"实际可否完成"为准，不是"环境变量是否被 export"（2026-11-26，Round 219）
+
+### 连续多轮的误判
+`publish` 能力一直被判为不可用，理由两条：
+```
+└ 缺环境: GH_TOKEN
+└ 不适用于节点类型 device
+```
+
+**但事实是**：`snapshot-release.sh` 在设备节点**已成功运行多次**
+（本轮又验证一次：276640B，82 脚本，回读校验通过）。
+
+### 根因：判据错位
+```python
+def check_env(spec):
+    for env in spec.get("requires_env") or []:
+        if not os.environ.get(env):
+            missing.append(env)      # ← 只看环境变量
+```
+
+设备节点的 token 存在 **`state/secrets/github.token` 文件**里，
+脚本自己会去读那个文件，**根本不需要 `GH_TOKEN` 环境变量**。
+
+**判据检查的是"环境变量是否被设置"，而能力真正需要的是"能否拿到凭据"。**
+
+### 修复两处
+**1. 凭据来源映射**
+```python
+ENV_FILE_FALLBACK = {
+    "GH_TOKEN": os.path.join(state, "secrets", "github.token"),
+}
+# 环境变量缺失时，看是否有等价的文件来源
+```
+
+**2. capabilities.json 放开节点类型**
+```json
+"publish": { "available_on": ["device", "actions"] }
+```
+理由：设备节点通过 token 文件也能发布（已实测多次）。
+
+### 精确变异测试
+| 场景 | publish 判定 |
+|---|---|
+| 无 token 文件 | · 缺环境: GH_TOKEN |
+| 有 token 文件 | ✓ 可用 |
+
+**判定逻辑正确，且以实际能力为准。**
+
+### 结果
+```
+✓ core / maintain / recover / think / distribute / publish
+实际可用能力: 6/6
+节点表: 17 项能力（含 snapshot-release）
+```
+
+**这是第一次 6 项能力全部可用。**
+
+### 教训
+**代理判据会偏离真实意图。**
+
+我一开始写的是"检查 GH_TOKEN 环境变量"，
+因为那是最容易检查的——但能力真正依赖的是"能拿到凭据"。
+
+**当一个判据检查的是"容易观测的代理指标"而非"真实需求"，
+它就会系统性地误判。** 而且误判方向通常是**低估**能力，
+因为代理指标往往比真实条件更严格。
+
+这与 D176（备份判据只看 /sdcard）同源：
+**判据盯住了一个容易测量的点，忘了它原本要测什么。**
