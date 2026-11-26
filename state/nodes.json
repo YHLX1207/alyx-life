@@ -2,9 +2,14 @@
  "device-localhost": {
   "id": "device-localhost",
   "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-26T15:20:38Z",
-  "beats": 44,
+  "last_seen": "2026-11-26T15:24:45Z",
+  "beats": 45,
   "kind": "device",
+  "caps": [
+   "maintain",
+   "push",
+   "reason"
+  ],
   "age_hours": 0.0
  },
  "actions": {
@@ -13,10 +18,10 @@
   "last_seen": "2026-11-26T15:07:28Z",
   "beats": 45,
   "kind": "actions",
-  "age_hours": 0.0
+  "age_hours": 0.29
  },
  "_summary": {
-  "ts": "2026-11-26T15:20:38Z",
+  "ts": "2026-11-26T15:24:45Z",
   "total_nodes": 2,
   "active_nodes": [
    "device-localhost",
