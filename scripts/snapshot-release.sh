@@ -34,6 +34,10 @@ cp ../README.md "../设备手册.md" "$WORK/dest/" 2>/dev/null
 # 明确剔除（不依赖 exclude 语义）
 rm -rf "$WORK/dest/state/secrets" "$WORK/dest/state/local-archive.tar.gz" 2>/dev/null
 rm -f  "$WORK/dest/state/watchdog.pid" "$WORK/dest/state/journal.jsonl" 2>/dev/null
+# ⚠️ 门限 DID 私钥份额绝不能进公开快照（Round 218）：
+#    cp ../state/*.json 会把 did-keys.json 一并带入，那里有 3 份私钥份额，
+#    泄露 2 份即可冒用身份。必须在此明确删除。
+rm -f  "$WORK/dest/state/did-keys.json" "$WORK/dest/state/did-signature.json" 2>/dev/null
 
 echo "  2) 凭据扫描…"
 # ⚠️ 只扫**真实 token 形态**：ghp_ 后跟 36 位、且整行不像正则/变量表达式。
