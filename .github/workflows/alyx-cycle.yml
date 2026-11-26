@@ -216,7 +216,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-        run: bash scripts/chain-think.sh
+        run: |
+          # ⚠️ 两级思考（Round 222）：
+          #   一级 chain-think.sh  —— 调真实模型，质量高，但依赖本机网关（CI 里没有）
+          #   二级 chain-think-degraded.sh —— 规则提炼，质量低，但**哪里都能跑**
+          #   CI 里一级会跳过，此时二级接管，保证"即使在无推理环境也有新判断"。
+          bash scripts/chain-think.sh || true
+          # 若一级没有产出新记录，用规则兜底
+          bash scripts/chain-think-degraded.sh
 
       - name: 产物落库校验（检测静默失败）
         #    链继续显示全部成功，但数据实际已停更（Round 202 发现）。
