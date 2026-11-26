@@ -175,6 +175,11 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-eval.sh
 
+
+      - name: 进化有效性评估（衡量进化是否真的改善系统）
+        # 汇总提议、应用、效果数据，给出综合评分，让系统能衡量自我进化的实际价值。
+        continue-on-error: true
+        run: bash scripts/evolution-effectiveness.sh
       - name: 规则自增（从自身历史发现反复模式）
         # ⚠️ 目标要求"自我进化"。此前决策规则全部预写死，系统只能执行不能进化。
         #    chain-evolve.sh 从决策历史中统计反复出现的问题模式，提议新规则。
