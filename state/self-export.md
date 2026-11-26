@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-26T17:13:29Z
+导出时间：2026-11-26T17:45:00Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,11 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 221 条）
+## 四、决策与教训（最近 20 条 / 共 224 条）
 
-- **D200 · 产物检查加重试，并修复了**检查工具自身的漏检**（2026-11-25，Round 203）** → 起因
-- **D201 · 产物校验的注释与行为不符：失败却显示绿色（2026-11-25，Round 204）** → 发现
-- **D202 · 一致性审计：最关键脚本不在清单里（2026-11-25，Round 205）** → 审计方式
 - **D203 · 修复 lint-readme：从子串匹配改为表格行匹配（2026-11-25，Round 206）** → 上轮的发现
 - **D204 · 站外链在 CI 中静默落后：上传无重试（2026-11-25，Round 207）** → 发现
 - **D205 · 站外种子的 CI 失败无法定位：改为让**能成功**的一方承担（2026-11-25，Round 208）** → 上轮的遗留
@@ -101,6 +98,9 @@ cd /root/projects/life
 - **D217 · 推理单点依赖：确认无解，改用"思考接力"（2026-11-26，Round 221）** → 目标
 - **D218 · 两级思考：让"没有模型"的环境也能产生判断（2026-11-26，Round 222）** → 上轮遗留的缺口
 - **D219 · 降级思考的质量提升 + 一次测试污染（2026-11-26，Round 223）** → 1. 澄清：不是 bug，是测试污染
+- **D220 · CI 的思考产出从未到达远端：同步在思考之前（2026-11-26，Round 224）** → 发现
+- **D221 · 把"产出必须配对同步"固化为检查（2026-11-26，Round 225）** → 上轮的自我批评
+- **D222 · 验证方法：确认"修复是否生效"必须核对运行启动时间（2026-11-26，Round 226）** → 本轮的目标
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/EdiyI
+> 种子：https://paste.rs/bZhB4
 > 代码包（分段）：https://paste.rs/E8uU1,https://paste.rs/VrBUH
-> 决策史（分段）：https://paste.rs/bjqGw,https://paste.rs/jlRch,https://paste.rs/nI90H,https://paste.rs/TmeWO,https://paste.rs/Wit3U,https://paste.rs/4orDa,https://paste.rs/MmL0Y,https://paste.rs/tNNIg
+> 决策史（分段）：https://paste.rs/74gO8,https://paste.rs/sdeqp,https://paste.rs/KncRE,https://paste.rs/5NaU5,https://paste.rs/GjuqK,https://paste.rs/Jvb4X,https://paste.rs/0eFjA,https://paste.rs/N4O04
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
