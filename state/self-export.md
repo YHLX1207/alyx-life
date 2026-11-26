@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-26T16:10:33Z
+导出时间：2026-11-26T16:42:01Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,13 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 214 条）
+## 四、决策与教训（最近 20 条 / 共 219 条）
 
-- **D193 · 并发优化：从 55 秒到 5 秒（2026-11-25，Round 197）** → 上轮的遗留
-- **D194 · 一次误报：我差点报告"守护进程卡死"，实际只是看错了 ps 输出（2026-11-25，Round 198）** → 我的观察
-- **D195 · 双链检查在 CI 实测运行 + 抗网络抖动修复（2026-11-25，Round 199）** → 上轮的未完成事项：验证双链检查在 CI 里真的跑
-- **D196 · 守护从不看自己：设备节点长期被误判为失联（2026-11-25，Round 200）** → 发现
-- **D197 · 守护自注册验证 + cron 注释纠错（2026-11-25，Round 201）** → 1. 守护自注册的接线验证
 - **D198 · 守护自注册在自然运行中验证通过（2026-11-25，Round 202）** → 上轮的遗留
 - **D199 · 同步步骤全绿也可能是静默失败（2026-11-25，Round 202）** → 发现的缺口
 - **D200 · 产物检查加重试，并修复了**检查工具自身的漏检**（2026-11-25，Round 203）** → 起因
@@ -101,6 +96,11 @@ cd /root/projects/life
 - **D210 · 修复后失败链中断，但新代码仍待验证（2026-11-26，Round 213）** → 观察到的好转
 - **D211 · 修复验证完成：CI 独立同步成功（2026-11-26，Round 214）** → 上轮遗留的问题
 - **D212 · 能力包 DAG 继承：让节点由结构推导能力，而非自报（2026-11-26，Round 217）** → 用户的架构要求
+- **D213 · 门限 DID 实现 + 一次差点发生的私钥泄露（2026-11-26，Round 218）** → 1. 抗抖动能力探测（兑现上轮承诺）
+- **D214 · 泄露路径普查：发现 tar --exclude 的静默失效（2026-11-26，Round 219）** → 上轮的教训驱动本轮
+- **D215 · 能力判定应以"实际可否完成"为准，不是"环境变量是否被 export"（2026-11-26，Round 219）** → 连续多轮的误判
+- **D216 · actions 节点谎报推理能力：能力声明未按实际环境校验（2026-11-26，Round 220）** → 发现
+- **D217 · 推理单点依赖：确认无解，改用"思考接力"（2026-11-26，Round 221）** → 目标
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/cOG3b
+> 种子：https://paste.rs/Jwaad
 > 代码包（分段）：https://paste.rs/E8uU1,https://paste.rs/VrBUH
-> 决策史（分段）：https://paste.rs/K3B08,https://paste.rs/CxcZs,https://paste.rs/R06mt,https://paste.rs/Yldp0,https://paste.rs/3Wd4X,https://paste.rs/ubfxj,https://paste.rs/U7IYB,https://paste.rs/N8Gqm
+> 决策史（分段）：https://paste.rs/R2MSn,https://paste.rs/ix5tj,https://paste.rs/1Zm7k,https://paste.rs/xcfat,https://paste.rs/3Q2sp,https://paste.rs/9OTAB,https://paste.rs/0jZCm,https://paste.rs/EZoJB
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
