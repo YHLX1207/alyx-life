@@ -128,8 +128,35 @@ prompt = (
     f"{material}"
 )
 
+# ⚠️ 使用模型健康排名（Round 244）：
+#    此前按固定顺序尝试模型，不根据实际表现调整。
+#    现在加载 model-health.json，按可用性和历史成功率重新排序。
+#    让思考能力也能自我进化。
+_ordered_models = []
+_health_path = os.path.join(state_dir, "model-health.json")
+if os.path.exists(_health_path):
+    try:
+        _health = json.load(open(_health_path, encoding="utf-8"))
+        _ranked = _health.get("ranked") or []
+        _health_models = [r["model"] for r in _ranked if r.get("available")]
+        # 按排名排序
+        for m in _health_models:
+            if m not in _ordered_models:
+                _ordered_models.append(m)
+        # 补充未在健康列表中的候选模型
+        for m in [m.strip() for m in models.split(",") if m.strip()]:
+            if m not in _ordered_models:
+                _ordered_models.append(m)
+    except Exception:
+        _ordered_models = [m.strip() for m in models.split(",") if m.strip()]
+else:
+    _ordered_models = [m.strip() for m in models.split(",") if m.strip()]
+
+if _ordered_models != [m.strip() for m in models.split(",") if m.strip()]:
+    print(f"  · 使用模型健康排名（{len(_ordered_models)} 个候选）")
+
 last_err = ""
-for model in [m.strip() for m in models.split(",") if m.strip()]:
+for model in _ordered_models:
     body = json.dumps({
         "model": model,
         "messages": [
