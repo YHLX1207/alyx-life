@@ -113,6 +113,9 @@ else printf "  ✗ 有脚本退出码可疑（./lint-exitcode.sh 查看）\n"; f
 # 敏感文件泄露检查（Round 218：DID 私钥差点进公开快照）
 if ./lint-secrets.sh >/dev/null 2>&1; then printf "  ✓ 无敏感文件泄露路径\n"; pass=$((pass+1));
 else printf "  ✗ 发现敏感文件泄露风险（./lint-secrets.sh 查看）\n"; fail=$((fail+1)); _rec_fail "敏感文件泄露"; fi
+# 工作流数据流检查（Round 225：同类问题第三次出现后固化）
+if ./lint-workflow-flow.sh >/dev/null 2>&1; then printf "  ✓ 工作流数据产出与同步成对\n"; pass=$((pass+1));
+else printf "  ✗ 有数据产出后未被送出（./lint-workflow-flow.sh 查看）\n"; fail=$((fail+1)); _rec_fail "数据流不完整"; fi
 # 自愈入口必须存在（醒来时恢复守护的唯一手段）
 if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
 else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
