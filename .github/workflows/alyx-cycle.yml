@@ -198,7 +198,7 @@ jobs:
               print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
           PYBEAT
 
-      - name: 同步思考记录（设备节点的推理结果）
+      - name: 拉取思考记录（设备节点的推理结果）
         # ⚠️ 架构真相（Round 221）：推理能力依赖本机网关 127.0.0.1:8326，
         #    而网关被设计为拒绝绑定 0.0.0.0（防暴露），故 CI **无法推理**。
         #    ⇒ 改为"思考接力"：设备节点推理 → 写入 → 同步到远端 → CI 读取。
@@ -224,6 +224,16 @@ jobs:
           bash scripts/chain-think.sh || true
           # 若一级没有产出新记录，用规则兜底
           bash scripts/chain-think-degraded.sh
+
+      - name: 同步思考记录（本节点产出 → 远端）
+        # ⚠️ 顺序不能反（Round 224 发现）：
+        #   此前"同步思考"放在"思考"**之前**，导致 CI 自己产出的降级思考
+        #   写在临时目录里，随运行结束消失，从未到达远端。
+        #   与 D209（站外种子只上传不记录）同类。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/sync-jsonl.sh state/self-thoughts.jsonl 200
 
       - name: 产物落库校验（检测静默失败）
         #    链继续显示全部成功，但数据实际已停更（Round 202 发现）。
