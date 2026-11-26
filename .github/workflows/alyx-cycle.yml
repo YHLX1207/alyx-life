@@ -198,6 +198,16 @@ jobs:
               print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
           PYBEAT
 
+      - name: 让它想一次（真实模型调用）
+        # ⚠️ 链此前只跑预写死的 if-then 规则，没有任何推理（Round 216 发现）。
+        #    本机有 OpenAI 兼容网关（127.0.0.1:8326，395 模型），
+        #    此处让链每轮真正"想一次"：读自己的历史，说一句判断。
+        #    CI 环境无网关 ⇒ 脚本会自动跳过（不报错）。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/chain-think.sh
+
       - name: 产物落库校验（检测静默失败）
         #    链继续显示全部成功，但数据实际已停更（Round 202 发现）。
         #    本步骤读取**远端**产物，若任一项陈旧则**真正失败**（步骤显示 failure）。
