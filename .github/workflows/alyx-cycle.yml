@@ -79,8 +79,15 @@ jobs:
 
       - name: 刷新站外种子
       # 上传依赖外部匿名服务，失败不应阻断整体（种子还有仓库内副本）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-        run: bash scripts/offsite-seed.sh
+        run: |
+          bash scripts/offsite-seed.sh
+          # ⚠️ 必须同步记录到远端（Round 212）：此前只上传不记录，
+          #    CI 里上传成功但 offsite-seed.jsonl 的远端副本从未更新，
+          #    导致产物校验永远读到旧记录、每小时报一次失败。
+          bash scripts/sync-jsonl.sh state/offsite-seed.jsonl 500
 
       - name: 刷新自述（给"下一个我"的最新材料）
       # ⚠️ export-self 曾既不在守护、也不在工作流里，
