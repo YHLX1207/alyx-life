@@ -179,6 +179,27 @@ if os.path.exists(_act_path):
     except Exception:
         pass
     if _act_history:
+        # 加载行动效果评估（Round 239）：优先提议"有效"的行动
+        _effect_map = {}
+        _eval_path = os.path.join(state, "chain-action-eval.jsonl")
+        if os.path.exists(_eval_path):
+            try:
+                for line in open(_eval_path, encoding="utf-8"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        ev = json.loads(line)
+                        _f = ev.get("finding", "")
+                        _act = ev.get("action", "")
+                        _v = ev.get("verdict", "")
+                        if _f and _act:
+                            _effect_map.setdefault((_f, _act), []).append(_v)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
         # 按 finding 聚合：同一 finding 用过哪些行动
         from collections import defaultdict
         _finding_actions = defaultdict(lambda: defaultdict(int))
@@ -192,8 +213,20 @@ if os.path.exists(_act_path):
             total = sum(_acts.values())
             if total < 3:
                 continue
-            # 选最常用的行动
-            _best_act, _best_count = max(_acts.items(), key=lambda x: x[1])
+            # ⚠️ 优先选**有效**的行动（Round 239）
+            #    此前只看"执行次数最多"，但执行多≠有效。
+            #    现在结合效果评估：优先选 effective 次数高的行动。
+            _effective_scores = {}
+            for _act, _cnt in _acts.items():
+                _eff = sum(1 for v in _effect_map.get((_f, _act), []) if v == "effective")
+                _eff_cnt = sum(1 for v in _effect_map.get((_f, _act), []) if v == "ineffective")
+                # 有效加分，无效减分
+                _effective_scores[_act] = _cnt + _eff * 2 - _eff_cnt * 2
+            if _effective_scores:
+                _best_act = max(_effective_scores, key=_effective_scores.get)
+                _best_count = _acts.get(_best_act, 0)
+            else:
+                _best_act, _best_count = max(_acts.items(), key=lambda x: x[1])
             _pat = _f  # 用原始 finding 文本作为模式
             _act_id = "auto-action-" + _f.replace(" ", "-")[:20]
             # 检查是否已提议
