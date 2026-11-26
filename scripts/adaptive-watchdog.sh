@@ -202,6 +202,12 @@ print(d.get('adb',0), d.get('shz',0))
       ./sync-jsonl.sh state/self-thoughts.jsonl 200
     " >> ../logs/watchdog.log 2>&1 || true ) &
   fi
+
+  # WAL 补推（Round 229）：断网期间暂存的数据，恢复后自动补推。
+  # 每 10 轮（约 30-60 分钟）检查一次。
+  if [ $(( n % 10 )) -eq 0 ]; then
+    ( timeout 120 ./offline-wal.sh flush >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 日志轮转：每 50 轮（约 2.5-5 小时）检查一次，防止日志无限增长（Round 187）
   if [ $(( n % 50 )) -eq 0 ]; then
     ( timeout 30 ./log-rotate.sh 2000 3 >/dev/null 2>&1 || true ) &
