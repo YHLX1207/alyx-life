@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-26T19:20:05Z
+导出时间：2026-11-26T19:51:40Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,10 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 233 条）
+## 四、决策与教训（最近 20 条 / 共 235 条）
 
-- **D212 · 能力包 DAG 继承：让节点由结构推导能力，而非自报（2026-11-26，Round 217）** → 用户的架构要求
-- **D213 · 门限 DID 实现 + 一次差点发生的私钥泄露（2026-11-26，Round 218）** → 1. 抗抖动能力探测（兑现上轮承诺）
 - **D214 · 泄露路径普查：发现 tar --exclude 的静默失效（2026-11-26，Round 219）** → 上轮的教训驱动本轮
 - **D215 · 能力判定应以"实际可否完成"为准，不是"环境变量是否被 export"（2026-11-26，Round 219）** → 连续多轮的误判
 - **D216 · actions 节点谎报推理能力：能力声明未按实际环境校验（2026-11-26，Round 220）** → 发现
@@ -101,6 +99,8 @@ cd /root/projects/life
 - **D229 · 自述 243 分钟静默停滞：根因是 continue-on-error 掩盖失败（2026-11-26，Round 232）** → 现象
 - **D230 · 量化成长：让系统知道自己在成长还是在维持（2026-11-26，Round 233）** → 动机
 - **D231 · 成长闭环：从"测量成长"到"用成长做判断"（2026-11-26，Round 234）** → 上轮的遗留
+- **D232 · 规则自增：让系统能从自己的历史中进化规则（2026-11-26，Round 235）** → 动机
+- **D233 · 决策驱动行动：让系统"想"的结果驱动"做"（2026-11-26，Round 236）** → 动机
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/5BJSC
+> 种子：https://paste.rs/VJp2c
 > 代码包（分段）：https://paste.rs/E8uU1,https://paste.rs/VrBUH
-> 决策史（分段）：https://paste.rs/Dr2GN,https://paste.rs/zEI5q,https://paste.rs/8LqO3,https://paste.rs/3z8tT,https://paste.rs/rKutZ,https://paste.rs/yYdr4,https://paste.rs/gSe6G,https://paste.rs/2sj7T,https://paste.rs/mZT7M
+> 决策史（分段）：https://paste.rs/Xzijr,https://paste.rs/H99LU,https://paste.rs/6avqx,https://paste.rs/XsJXF,https://paste.rs/UVQan,https://paste.rs/7Cg7i,https://paste.rs/xuAKM,https://paste.rs/NxYMQ,https://paste.rs/7wGZv
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
