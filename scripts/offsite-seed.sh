@@ -54,11 +54,18 @@ esac
 # 回读校验：**必须先解码再比**。
 # ⚠️ Round 139 首版直接把 tar 的 md5 与取回内容的 md5 比较 ——
 #    但远端存的是 base64，本地算的是 tar，**两种表示永远不相等**，导致误报"上传失败"。
-timeout 90 curl -s --max-time 85 "$URL" > "$TMP/back.b64" 2>/dev/null
-base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null || { echo "  ✗ 回读内容不是合法 base64"; exit 1; }
-BSUM=$(md5sum "$TMP/rt.tar.gz" | cut -d' ' -f1)
-if [ "$SUM" != "$BSUM" ]; then
-  echo "  ✗ 回读校验失败（本地 tar $SUM / 远端解码后 $BSUM）"; exit 1
+# ⚠️ 回读需重试（Round 210）：paste.rs 上传后立即回读可能拿到空内容
+#    （实测远端解码后 md5 = d41d8cd9... = 空文件的 md5），稍等再取即可。
+_ok=0
+for _r in 1 2 3 4 5; do
+  timeout 90 curl -s --max-time 85 "$URL" > "$TMP/back.b64" 2>/dev/null
+  base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null
+  BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
+  [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
+  [ "$_r" -lt 5 ] && { echo "    ⚠ 回读第 $_r 次未就绪，等待 $(( _r * 3 ))s" >&2; sleep $(( _r * 3 )); }
+done
+if [ "$_ok" -ne 1 ]; then
+  echo "  ✗ 回读校验失败（5 次重试后仍不一致：本地 $SUM / 远端 $BSUM）"; exit 1
 fi
 
 # 还原校验：解码后的 tar 必须能列出 5 个状态文件
