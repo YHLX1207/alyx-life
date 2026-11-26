@@ -158,4 +158,76 @@ for p in proposals:
     print(f"    出现 {p['occurrences']} 次，级别 {p['severity']}")
     print(f"    示例: {p['example'][:60]}")
 print(f"  ✓ 已写入 {len(proposals)} 条规则提议")
+
+# --- 行动映射提议（Round 237）---
+# ⚠️ 此前自进化只覆盖"检测规则"，不覆盖"行动映射"。
+#    chain-act 的动作映射是静态预定义的，系统不能自己进化行动能力。
+#    现在扩展：从行动历史中学习"什么发现对应什么行动"，提议行动映射。
+_act_proposals = []
+_act_path = os.path.join(state, "chain-actions.jsonl")
+if os.path.exists(_act_path):
+    _act_history = []
+    try:
+        for line in open(_act_path, encoding="utf-8"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                _act_history.append(json.loads(line))
+            except Exception:
+                pass
+    except Exception:
+        pass
+    if _act_history:
+        # 按 finding 聚合：同一 finding 用过哪些行动
+        from collections import defaultdict
+        _finding_actions = defaultdict(lambda: defaultdict(int))
+        for a in _act_history:
+            _f = a.get("finding", "")
+            _act = a.get("action", "")
+            if _f and _act and a.get("status") == "ok":
+                _finding_actions[_f][_act] += 1
+        # 只对出现 >= 3 次的 finding 提议行动映射
+        for _f, _acts in _finding_actions.items():
+            total = sum(_acts.values())
+            if total < 3:
+                continue
+            # 选最常用的行动
+            _best_act, _best_count = max(_acts.items(), key=lambda x: x[1])
+            _pat = _f  # 用原始 finding 文本作为模式
+            _act_id = "auto-action-" + _f.replace(" ", "-")[:20]
+            # 检查是否已提议
+            _existing_act = set()
+            try:
+                for line in open(os.path.join(state, "action-proposals.jsonl"), encoding="utf-8"):
+                    line = line.strip()
+                    if line:
+                        try:
+                            _existing_act.add(json.loads(line).get("action_id", ""))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            if _act_id in _existing_act:
+                continue
+            _act_proposals.append({
+                "ts": ts,
+                "action_id": _act_id,
+                "finding": _f,
+                "action": _best_act,
+                "occurrences": total,
+                "effective_count": _best_count,
+                "reason": f"发现「{_f}」出现 {total} 次，行动「{_best_act}」成功 {_best_count} 次，建议固化",
+            })
+
+if _act_proposals:
+    _act_prop_path = os.path.join(state, "action-proposals.jsonl")
+    with open(_act_prop_path, "a", encoding="utf-8") as f:
+        for p in _act_proposals:
+            f.write(json.dumps(p, ensure_ascii=False) + "\n")
+    for p in _act_proposals:
+        print(f"  ＋ 提议行动 [{p['action_id']}]")
+        print(f"    发现: {p['finding']} → 行动: {p['action']}")
+        print(f"    出现 {p['occurrences']} 次，成功 {p['effective_count']} 次")
+    print(f"  ✓ 已写入 {len(_act_proposals)} 条行动提议")
 PY
