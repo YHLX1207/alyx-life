@@ -61,8 +61,19 @@ for l in local_lines:
         added.append(l)
         seen.add(ts)
 
+# ⚠️ 即使本地没有新记录，也要把远端记录**拉回本地**（Round 216）
+#    此前这里直接 exit(0)，导致本地文件永远滞后：
+#    实测本地 13 条 / 远端 53 条，而 chain-think.sh 读本地，
+#    于是模型看到的是 25 小时前的旧数据（decision_count 169 vs 实际 213）。
 if not added:
-    print("  无新自省需同步")
+    remote_sorted = sorted(remote_lines, key=lambda l: (json.loads(l).get("ts") or ""))
+    local_sorted = sorted(local_lines, key=lambda l: (json.loads(l).get("ts") or ""))
+    if len(remote_sorted) > len(local_sorted):
+        with open(LOCAL, "w", encoding="utf-8") as f:
+            f.write("\n".join(remote_sorted) + "\n")
+        print(f"  ↓ 已从远端拉回 {len(remote_sorted)} 条自省（本地原有 {len(local_sorted)} 条）")
+    else:
+        print("  无新自省需同步")
     sys.exit(0)
 
 merged_all = remote_lines + added
