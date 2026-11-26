@@ -98,8 +98,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: |
-          bash scripts/export-self.sh
-          bash scripts/sync-jsonl.sh state/self-export.md
+            # ⚠️ self-export.md 在 .gitignore，CI checkout 后不存在（Round 232）。
+            #    若 export-self.sh 静默失败，sync-jsonl 找不到本地文件 ⇒ 远端停滞。
+            #    此前 continue-on-error 把失败掩盖成 success。现在显式校验。
+            if ! bash scripts/export-self.sh; then
+              echo "✗ 自述生成失败"
+              exit 1
+            fi
+            [ -s state/self-export.md ] || { echo "✗ 自述文件为空"; exit 1; }
+            # 同步失败（网络等）不阻断：记录即可，守护会补推
+            bash scripts/sync-jsonl.sh state/self-export.md || echo "  · 同步失败（网络），稍后补推"
 
       - name: 记录客观状态（auto-journal）
       # 每轮醒来都留一份可复现的状态快照：决策数、脚本数、运行场景。
