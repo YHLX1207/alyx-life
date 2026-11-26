@@ -198,6 +198,16 @@ jobs:
               print(f"  ✗ 心跳写入失败: {str(e)[:80]}")
           PYBEAT
 
+      - name: 同步思考记录（设备节点的推理结果）
+        # ⚠️ 架构真相（Round 221）：推理能力依赖本机网关 127.0.0.1:8326，
+        #    而网关被设计为拒绝绑定 0.0.0.0（防暴露），故 CI **无法推理**。
+        #    ⇒ 改为"思考接力"：设备节点推理 → 写入 → 同步到远端 → CI 读取。
+        #    CI 虽不能自己想，但能知道"我最近在想什么"，保持认知连续。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/sync-jsonl.sh state/self-thoughts.jsonl 200
+
       - name: 让它想一次（真实模型调用）
         # ⚠️ 链此前只跑预写死的 if-then 规则，没有任何推理（Round 216 发现）。
         #    本机有 OpenAI 兼容网关（127.0.0.1:8326，395 模型），
