@@ -1,151 +1,124 @@
 #!/usr/bin/env bash
-# 主模型健康度与降级链
+# 模型健康追踪：让系统能感知哪些模型更可靠，自我调整思考策略
 #
-# 数据源：token-ledger（真实请求记录）+ state.json（限流）—— 均属 D078 可信档
-# 判据：近 7 天错误率。样本 <100 次的模型标记"样本不足"，不作为降级依据。
+# 为什么需要（Round 244）：
+#   目标要求"自我进化"。系统能进化检测规则和行动映射，但**思考能力的模型偏好是硬编码的**。
+#   chain-think 按固定顺序尝试模型，不根据实际表现调整。
+#   ⇒ 思考能力没有自我进化。
+#
+#   本脚本：
+#   1. 探测各候选模型的可用性和延迟
+#   2. 从历史思考记录中统计各模型的成功率
+#   3. 生成健康排名（可用 + 成功率 + 延迟）
+#   4. 写入 state/model-health.json
+#
+#   chain-think 会读取这个排名，优先使用健康的模型。
 set -uo pipefail
 cd "$(dirname "$0")"
-HUB=/root/projects/.dsh/jet-hub
 
-python3 - "$HUB" <<'PY'
-import json,sys,time
-from collections import defaultdict
-hub=sys.argv[1]; now=time.time()
-PRIMARY=canon('deepseek-v4-1-flash') if False else 'deepseek-v4-1-flash'
-MIN_SAMPLE=100
+STATE="${ALYX_STATE_DIR:-../state}"
+OUT="$STATE/model-health.json"
 
-led=json.load(open(hub+'/token-ledger.json'))
-st=json.load(open(hub+'/state.json'))
-days=sorted(led.get('days',{}).keys())
-win=days[-7:] if len(days)>=7 else days
+GW_KEY_FILE="/root/projects/.dsh/openai-gateway/api-key"
+GW_URL="${ALYX_GATEWAY_URL:-http://127.0.0.1:8326/v1}"
 
-def canon(raw):
-    """复刻插件 normalizeModelKey：点号→连字符、去 sn- 前缀、小写、取 / 后段。
-    不归一就无法区分'主模型的其他写法'与'真正独立的备选模型'。"""
-    s2=raw.strip().lower()
-    if '/' in s2: s2=s2[s2.rfind('/')+1:]
-    if s2.endswith(':free'): s2=s2[:-5]
-    if s2.startswith('sn-'): s2=s2[3:]
-    s2=s2.replace('.','-').replace(' ','-')
-    return s2
+GW_KEY="${ALYX_GATEWAY_KEY:-}"
+[ -n "$GW_KEY" ] || GW_KEY=$(cat "$GW_KEY_FILE" 2>/dev/null | tr -d '[:space:]')
 
-agg=defaultdict(lambda: defaultdict(int))
-provs_of=defaultdict(set)
-raw_alias=defaultdict(set)
-for day in win:
-    for k,v in led['days'][day].items():
-        pp=k.split('|')
-        raw=pp[3] if len(pp)>3 else '?'
-        ck=canon(raw)
-        raw_alias[ck].add(raw)
-        for f in ('requests','errors'):
-            agg[ck][f]+=v.get(f,0) or 0
-        if len(pp)>1: provs_of[ck].add(pp[1])
+MODELS="${ALYX_THINK_MODELS:-codearts/GLM-5.2,buddy/hy4-preview,modelscope/deepseek-ai/DeepSeek-V4-Pro-0813,trae/Doubao-Seed-Code,loomy/spark-x2.6,astudio/xopglm52,opencode/big-pickle,jet-hub-auto/auto}"
 
-throttled={}
-for a in st.get('accounts',[]):
-    if not a.get('enabled'): continue
-    for m,u in (a.get('modelRateLimits') or {}).items():
-        if isinstance(u,(int,float)):
-            if u>1e12: u/=1000
-            if u>now:
-                throttled.setdefault(m,set()).add(a.get('provider')); break
+python3 - "$STATE" "$OUT" "$GW_URL" "$GW_KEY" "$MODELS" <<'PY'
+import sys, os, json, time, datetime, urllib.request
 
-# 近期活跃度（近 2 天请求数）：备选模型必须**当前可用**才有降级价值。
-# 实测教训：7 天窗口显示"健康"的模型，近 2 天可能零流量（凭据过期/供应商停服）。
-recent2=defaultdict(int); last_seen={}
-for day in days:
-    for k,v in led['days'][day].items():
-        pp=k.split('|'); c=canon(pp[3] if len(pp)>3 else '?')
-        cnt=v.get('requests',0) or 0
-        if day in days[-2:]: recent2[c]+=cnt
-        if cnt>0: last_seen[c]=day
+state, out_path, gw_url, gw_key, models_str = sys.argv[1:6]
+now = datetime.datetime.now(datetime.timezone.utc)
+ts = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-def evaluate(name):
-    a=agg.get(name)
-    if not a or not a['requests']: return None
-    r=a['requests']; e=a['errors']
-    return dict(req=r,err=e,rate=e*100/r if r else 0,nprov=len(provs_of.get(name,())),
-                recent=recent2.get(name,0),last=last_seen.get(name,''))
+# 读取历史思考，统计各模型成功率
+thought_stats = {}
+try:
+    for line in open(os.path.join(state, "self-thoughts.jsonl"), encoding="utf-8"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            t = json.loads(line)
+            m = t.get("model", "?")
+            thought_stats[m] = thought_stats.get(m, 0) + 1
+        except Exception:
+            pass
+except FileNotFoundError:
+    pass
 
-# 主模型当前质量用**近 2 天**（避免已移除账户的历史错误污染长期窗口）
-_short=days[-2:] if len(days)>=2 else days
-_as=defaultdict(lambda: defaultdict(int))
-for _d in _short:
-    for _k,_v in led['days'][_d].items():
-        _pp=_k.split('|'); _raw=_pp[3] if len(_pp)>3 else '?'
-        for _f in ('requests','errors'):
-            _as[canon(_raw)][_f]+=_v.get(_f,0) or 0
-_ps=_as.get(PRIMARY)
-p_short=dict(req=_ps["requests"],err=_ps["errors"],rate=_ps["errors"]*100/_ps["requests"]) if _ps and _ps["requests"] else None
+models = [m.strip() for m in models_str.split(",") if m.strip()]
 
-print(f"=== 主模型（近 {len(_short)} 天，反映当前）===")
-p=evaluate(PRIMARY)
-if p_short:
-    v='健康' if p_short['rate']<5 and p_short['req']>=MIN_SAMPLE else ('可用' if p_short['rate']<15 else '劣化')
-    print(f"  {PRIMARY:<34}")
-    print(f"    {p_short['req']:,} 请求 / {p_short['err']:,} 错误（{p_short['rate']:.1f}%）→ {v}")
-    if p and p['req']>=MIN_SAMPLE:
-        print(f"    （近 {len(win)} 天: {p['req']:,} 请求 / {p['rate']:.1f}% —— 含已移除账户的历史错误）")
-else:
-    print(f"  {PRIMARY}: 无近期记录 → 未知")
-    v='未知'
+results = []
+for model in models:
+    rec = {"model": model, "available": False, "latency_ms": 0, "success": 0, "total": 0}
 
-print(f"\n=== 降级链（按实测质量排序）===")
-cands=[]; single=[]; dead=[]
-for name in agg:
-    if name==PRIMARY: continue
-    s=evaluate(name)
-    if not s: continue
-    if s['req']<MIN_SAMPLE: continue
-    if s['rate']>=15: continue          # 质量不合格，直接排除
-    if s['recent']<=0:                  # **近期零流量 = 很可能已不可用**，不能作降级目标
-        dead.append((s['rate'],name,s)); continue
-    if s['nprov']<=1:                   # 单点模型不作降级目标（降级是为提高可用性）
-        single.append((s['rate'],name,s)); continue
-    # 排序键：(错误率, -供应商数) —— 质量优先，同等质量下冗余多的优先
-    cands.append((s['rate'],-s['nprov'],name,s))
-cands.sort()
-if not cands:
-    print("  无可用的备选模型（样本均不足）")
-else:
-    for i,(rate,negp,name,s) in enumerate(cands[:5],1):
-        nprov=-negp
-        tag=' ★首选备选' if i==1 else ''
-        # 同族标注：与主模型共享前缀的版本号模型，不是真正独立的备选
-        if name.startswith(PRIMARY):
-            tag+='  ⚠同族'
-        print(f"  {i}. {name[:30]:<32} 7天{s['req']:>5,} {rate:>4.1f}%  {nprov}家 近2天{s['recent']:>4}次{tag}")
-    if single:
-        print("  --- 质量尚可但单点（不作降级目标）---")
-        for rate,name,s in sorted(single)[:3]:
-            print(f"    {name[:30]:<32} {s['req']:>6,}请求 {rate:>5.1f}%  1家 近2天{s['recent']}次")
-    if dead:
-        print("  --- 近 2 天零流量（很可能已不可用，**不可作降级目标**）---")
-        for rate,name,s in sorted(dead)[:4]:
-            print(f"    {name[:30]:<32} 7天{s['req']:>6,}请求 {rate:>5.1f}%  最后活跃 {s['last'][5:]}")
+    # 探测可用性和延迟
+    if gw_key:
+        body = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": "OK"}],
+            "max_tokens": 5,
+        }).encode()
+        start = time.time()
+        try:
+            req = urllib.request.Request(
+                f"{gw_url}/chat/completions", data=body, method="POST",
+                headers={"Authorization": f"Bearer {gw_key}",
+                         "Content-Type": "application/json", "User-Agent": "alyx"})
+            r = json.loads(urllib.request.urlopen(req, timeout=30).read())
+            rec["available"] = "error" not in r
+            rec["latency_ms"] = int((time.time() - start) * 1000)
+        except Exception:
+            rec["available"] = False
+            rec["latency_ms"] = int((time.time() - start) * 1000)
 
-print(f"\n=== 限流（影响候选可用性）===")
-ds={m:p for m,p in throttled.items() if 'deepseek' in m.lower()}
-if ds:
-    for m,provs in ds.items():
-        print(f"  ⏳ {m[:34]:<36} {', '.join(sorted(provs))}")
-else:
-    print("  ✓ 主模型相关无供应商限流")
+    # 历史成功率
+    rec["total"] = thought_stats.get(model, 0)
+    rec["success"] = rec["total"]  # 已写入 self-thoughts 的都是成功的
 
-print("\n=== 结论 ===")
-if p_short and p_short["rate"]<5:
-    print("  主模型健康（近2天 %.1f%%），无需降级。" % p_short["rate"])
-elif p_short and p_short["rate"]<15:
-    print("  主模型可用但劣化（近2天 %.1f%%）—— 观察，暂不切换。" % p_short["rate"])
-else:
-    print("  ⚠ 主模型劣化/无数据（近2天 %s）—— 建议降级。" % ("%.1f%%" % p_short["rate"] if p_short else "无记录"))
+    results.append(rec)
 
-if len(cands)==0:
-    print("  ⚠⚠ 无可用降级目标（近期活跃的非单点备选为 0）")
-    print("     ⇒ 当前不应依赖降级，应保持主模型健康。")
-elif len(cands)==1:
-    print("  ⚠ 降级目标仅 1 个（%s），冗余不足。" % cands[0][2])
-print("\n  注：同族标注项与主模型共享前缀（如版本号 -1017），")
-print("      切换它们不改变模型家族，收益有限。")
+# 生成排名：可用优先，然后按成功率，再按延迟
+# 排序：available=True 优先；同可用时，成功率高优先；成功率相同时延迟低优先
+results.sort(key=lambda r: (
+    not r["available"],          # available 的排前面
+    -r["total"],                 # 历史成功次数多优先
+    r["latency_ms"],             # 延迟低优先
+))
+
+# 输出排名
+ranked = []
+for i, r in enumerate(results):
+    ranked.append({
+        "rank": i + 1,
+        "model": r["model"],
+        "available": r["available"],
+        "latency_ms": r["latency_ms"],
+        "history_count": r["total"],
+    })
+
+output = {
+    "ts": ts,
+    "gateway": gw_url,
+    "ranked": ranked,
+}
+os.makedirs(state, exist_ok=True)
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(output, f, ensure_ascii=False, indent=1)
+
+# 输出
+print(f"  模型健康排名（{len(ranked)} 个）:")
+for r in ranked[:8]:
+    mark = "✓" if r["available"] else "✗"
+    latency = f"{r['latency_ms']}ms" if r["latency_ms"] > 0 else "-"
+    hist = f"历史{r['history_count']}次" if r["history_count"] > 0 else "无历史"
+    print(f"    {mark} #{r['rank']} {r['model']:<40} {latency:>8} {hist}")
+
+avail = sum(1 for r in ranked if r["available"])
+print(f"  可用: {avail}/{len(ranked)}")
+print(f"  ✓ 已写入 {out_path}")
 PY
