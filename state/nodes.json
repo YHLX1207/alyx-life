@@ -10,18 +10,18 @@
  "device-localhost": {
   "id": "device-localhost",
   "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-26T15:24:45Z",
-  "beats": 45,
+  "last_seen": "2026-11-26T15:50:42Z",
+  "beats": 46,
   "kind": "device",
   "caps": [
    "maintain",
    "push",
    "reason"
   ],
-  "age_hours": 0.24
+  "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-26T15:39:00Z",
+  "ts": "2026-11-26T15:50:42Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions",
