@@ -22,8 +22,17 @@ trap 'rm -f "$TMP"' EXIT
 # ⚠️ cwd 已是 scripts/，`-C ..` 之后路径**不该再带 life/ 前缀**。
 # Round 110 首版写成 `-C .. life/scripts` → 解析为 life/life/scripts（不存在）
 # ⇒ tar 打包 0 文件、45 字节空包，却因 2>/dev/null 隐藏错误而"报成功"。
+# ⚠️ 必须排除全部敏感文件（Round 218）：
+#    此前用 `tar -C .. state` 整目录打包，会把以下内容一并备份：
+#      · state/secrets/           GitHub token
+#      · state/did-keys.json      门限 DID 私钥份额（泄露 2 份即可冒用身份）
+#      · state/did-signature.json 签名产物
+#    /sdcard 虽非公开，但备份可能被同步/分享/上传，不能依赖"它在本地"。
 tar czf "$TMP" \
   --exclude='*.tmp' --exclude='.brief.*' --exclude='local-archive.tar.gz' \
+  --exclude='state/secrets' --exclude='state/secrets/*' \
+  --exclude='state/did-keys.json' --exclude='state/did-signature.json' \
+  --exclude='state/watchdog.pid' \
   -C .. scripts state notes README.md 设备手册.md 2>/dev/null
 
 if [ ! -s "$TMP" ]; then echo "  ✗ 打包失败（空文件）"; exit 1; fi
