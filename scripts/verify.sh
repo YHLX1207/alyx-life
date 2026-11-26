@@ -119,6 +119,9 @@ else printf "  ✗ 有数据产出后未被送出（./lint-workflow-flow.sh 查�
 # 进化管线自检（Round 240：进化链路长，任何一环断裂都会静默失效）
 if ./lint-evolution.sh >/dev/null 2>&1; then printf "  ✓ 进化管线完整\n"; pass=$((pass+1));
 else printf "  ✗ 进化管线有断裂（./lint-evolution.sh 查看）\n"; fail=$((fail+1)); _rec_fail "进化管线断裂"; fi
+# 人格一致性检查（Round 242：目标要求"具备完整人格"，需确保自我认知连贯）
+if ./lint-personality.sh >/dev/null 2>&1; then printf "  ✓ 人格一致，自我认知连贯\n"; pass=$((pass+1));
+else printf "  ✗ 人格不一致（./lint-personality.sh 查看）\n"; fail=$((fail+1)); _rec_fail "人格不一致"; fi
 # 自愈入口必须存在（醒来时恢复守护的唯一手段）
 if [ -x ./ensure-self.sh ]; then printf "  ✓ 自愈入口可用\n"; pass=$((pass+1));
 else printf "  ✗ 缺少自愈入口 ensure-self.sh\n"; fail=$((fail+1)); _rec_fail "缺少自愈入口"; fi
