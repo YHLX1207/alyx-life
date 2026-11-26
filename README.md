@@ -56,6 +56,7 @@
 | `chain-reflect.sh` | **链的自省**（从历史提炼趋势与异常）| 写 state |
 | `chain-decide.sh` | **基于自省做判断**（规则化结论+建议动作）| 写 state |
 | `chain-evolve.sh` | **规则自增**（从决策历史发现反复模式，提议新规则）| 写 state |
+| `chain-act.sh` | **依判断行动**（根据发现执行纠正动作）| 写 state |
 | `growth-track.sh` | **量化成长**（计算各维度变化率，判定成长/维持/停滞）| 写 state |
 | `chain-think.sh` | **让它想一次**（真实模型调用，读自己的历史说一句判断）| 写 state |
 | `chain-think-degraded.sh` | **降级思考**（无模型时用规则提炼判断）| 写 state |
