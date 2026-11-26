@@ -5,18 +5,18 @@
   "last_seen": "2026-11-25T22:18:56Z",
   "beats": 10,
   "kind": "device",
-  "age_hours": 2.1
+  "age_hours": 2.63
  },
  "actions": {
   "id": "actions",
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-26T00:25:11Z",
-  "beats": 17,
+  "last_seen": "2026-11-26T00:56:36Z",
+  "beats": 18,
   "kind": "actions",
   "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-26T00:25:11Z",
+  "ts": "2026-11-26T00:56:36Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions"
