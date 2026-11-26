@@ -52,8 +52,8 @@ findings = latest.get("findings") or []
 problem_findings = [f for f in findings if f.get("severity") in ("high", "critical")]
 
 if not problem_findings:
-    print("  · 无 high/critical 发现，无需行动")
-    sys.exit(0)
+    print("  · 无 high/critical 发现，跳过问题行动（仍执行成长行动）")
+    # ⚠️ 不在此 exit：成长行动需要在任何状态下都能执行（Round 245）
 
 # --- 加载自增行动映射（Round 237）---
 # 优先使用 chain-evolve 提议的行动映射，没有则回退到静态映射。
@@ -153,6 +153,53 @@ for f in problem_findings:
             "action": description, "status": "error", "reason": str(e)[:80],
         })
 
+
+# --- 成长导向行动（Round 245）---
+# ⚠️ 此前 chain-act 只做**反应式**行动：发现问题就纠正。
+#    但当系统判定"维持"或"停滞"时，没有主动采取促进成长的行动。
+#    目标要求"不断成长"——系统应该能针对成长状态主动行动。
+#    现在加入：根据 growth.jsonl 的判定，执行成长导向动作。
+_growth_rec = None
+try:
+    _g_lines = [l.strip() for l in open(os.path.join(state, "growth.jsonl"), encoding="utf-8") if l.strip()]
+    if _g_lines:
+        _growth_rec = json.loads(_g_lines[-1])
+except Exception:
+    pass
+
+if _growth_rec:
+    _g_verdict = _growth_rec.get("verdict", "")
+    _g_window = _growth_rec.get("window", "?")
+    if _g_verdict == "maintaining":
+        # 维持中 ⇒ 触发一次聚焦成长的思考
+        try:
+            _p = subprocess.run(["bash", "-c", "timeout 120 ./chain-think.sh >/dev/null 2>&1"],
+                               capture_output=True, timeout=150)
+            _ok = _p.returncode == 0
+            executed.append({
+                "ts": ts, "finding": "成长判定=维持", "severity": "info",
+                "action": "触发聚焦成长的思考", "status": "ok" if _ok else "failed",
+                "source": "growth", "window": _g_window})
+        except Exception as e:
+            executed.append({
+                "ts": ts, "finding": "成长判定=维持", "severity": "info",
+                "action": "触发聚焦成长的思考", "status": "error", "source": "growth",
+                "reason": str(e)[:80]})
+    elif _g_verdict == "stagnating":
+        # 停滞 ⇒ 触发自省，寻找新的产出方向
+        try:
+            _p = subprocess.run(["bash", "-c", "timeout 120 ./chain-reflect.sh >/dev/null 2>&1"],
+                               capture_output=True, timeout=150)
+            _ok = _p.returncode == 0
+            executed.append({
+                "ts": ts, "finding": "成长判定=停滞", "severity": "high",
+                "action": "触发自省寻找新方向", "status": "ok" if _ok else "failed",
+                "source": "growth", "window": _g_window})
+        except Exception as e:
+            executed.append({
+                "ts": ts, "finding": "成长判定=停滞", "severity": "high",
+                "action": "触发自省寻找新方向", "status": "error", "source": "growth",
+                "reason": str(e)[:80]})
 # 写入日志
 os.makedirs(state, exist_ok=True)
 with open(log_path, "a", encoding="utf-8") as f:
