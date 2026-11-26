@@ -25,14 +25,14 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 0.0
+  "age_hours": 0.14
  },
  "actions": {
   "id": "actions",
-  "did": "did:alyx:shamir-2of3",
+  "did": null,
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-26T16:33:39Z",
-  "beats": 48,
+  "last_seen": "2026-11-26T16:42:04Z",
+  "beats": 49,
   "kind": "actions",
   "caps": [
    "bootstrap",
@@ -45,7 +45,6 @@
    "node-registration",
    "persistence",
    "push",
-   "reason",
    "restore",
    "self-check",
    "self-reflection",
@@ -54,14 +53,12 @@
   "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-26T16:33:39Z",
+  "ts": "2026-11-26T16:42:04Z",
   "total_nodes": 2,
   "active_nodes": [
    "device-localhost",
    "actions"
   ],
-  "stale_nodes": [],
-  "current": "actions",
   "quorum": "healthy"
  }
 }
