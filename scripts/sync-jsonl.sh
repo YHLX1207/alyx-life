@@ -81,6 +81,20 @@ if not _is_jsonl:
     if local_content == remote_content:
         print(f"  {rel_path}: 内容一致，无需同步")
         sys.exit(0)
+
+    # ⚠️ 快照型文件（.md）：只推更新的版本，防旧覆盖新（Round 232）
+    #    场景：CI 18:00 生成快照，守护 17:50 生成、18:05 才推 ⇒ 自述倒退。
+    import re as _re
+    def _snap_ts(txt):
+        m = _re.search(r"导出时间[：:]\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)", txt)
+        return m.group(1) if m else None
+    _lt, _rt = _snap_ts(local_content), _snap_ts(remote_content)
+    if _lt and _rt and _lt < _rt:
+        print(f"  ⚠ {rel_path}: 本地快照较旧（{_lt} < 远端 {_rt}），跳过推送")
+        with open(LOCAL, "w", encoding="utf-8") as _f:
+            _f.write(remote_content)
+        print("  ↓ 已用远端较新版本更新本地")
+        sys.exit(0)
     payload = {"message": f"sync {rel_path}",
                "content": base64.b64encode(local_content.encode()).decode(),
                "branch": "main"}
