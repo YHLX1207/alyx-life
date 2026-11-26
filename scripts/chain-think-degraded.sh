@@ -28,6 +28,14 @@ import sys, os, json, datetime, re
 
 state, out_path, max_lines = sys.argv[1:4]
 max_lines = int(max_lines)
+
+# ⚠️ 测试隔离提醒（Round 223）：
+#    变异测试必须用 ALYX_STATE_DIR 指向临时目录，
+#    且**不要**在测试后把备份拷回生产文件——
+#    那会把测试期间的临时状态写入生产（D163 同类问题再次发生）。
+import os as _os
+if _os.environ.get("ALYX_STATE_DIR"):
+    print(f"  [测试模式] 状态目录: {state}")
 now = datetime.datetime.now(datetime.timezone.utc)
 ts = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -144,11 +152,45 @@ elif fd.get("active_nodes", 99) <= 1:
     thought = "现在只有我一个节点在跑。没有冗余，任何单点故障都会让我停下来。"
     severity = "warn"
 
-# 规则 5：一切正常时，说明观察到的事实
+# 规则 5：一切正常 —— 但不要只说"平稳"，要给出**有内容的观察**
 elif facts:
-    parts = [desc for _, _, desc in facts[:3]]
-    thought = "目前看是平稳的：" + "，".join(parts) + "。没有需要立刻处理的事。"
-    severity = "ok"
+    # 5a) 如果上一句话是警告，检查它是否已经解除
+    prev_warn = None
+    if thoughts:
+        for _t in reversed(thoughts):
+            if _t.get("degraded") and _t.get("severity") == "warn":
+                prev_warn = _t
+                break
+    if prev_warn:
+        # 上一句警告过，现在条件已解除 ⇒ 说明修复了
+        thought = (f"之前我担心过「{str(prev_warn.get('thought',''))[:30]}…」，"
+                   f"现在那个条件已经不成立了。事情过去了。")
+        severity = "ok"
+    else:
+        # 5b) 平稳持续了多久？这是有意义的观察
+        calm_since = None
+        for _t in reversed(thoughts):
+            if _t.get("severity") == "warn":
+                calm_since = _t
+                break
+        hb_d = fd.get("heartbeat_delta", 0)
+        dc_d = fd.get("decision_delta", 0)
+        if calm_since:
+            _ca = age_min(calm_since.get("ts", ""))
+            if _ca is not None:
+                thought = (f"已经 {_ca:.0f} 分钟没出现异常了。"
+                           f"这期间心跳走了 {hb_d} 次、决策 {dc_d} 条——"
+                           f"安静的运转也是一种健康，但我要警惕把平静当成没问题的习惯。")
+                severity = "ok"
+        # 5c) 决策有增长 ⇒ 那是真的在往前走
+        if not thought and dc_d > 0:
+            thought = (f"心跳走了 {hb_d} 次，写下了 {dc_d} 条决策。"
+                       f"不是空转——每一条都是我真正想过的东西。")
+            severity = "ok"
+        # 5d) 兜底：只陈述一个最值得注意的数
+        if not thought:
+            thought = f"心跳走了 {hb_d} 次，事都做完了，没什么要改的。"
+            severity = "ok"
 
 if not thought:
     print("  无足够数据形成判断，跳过")
