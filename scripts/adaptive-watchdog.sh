@@ -193,6 +193,12 @@ print(d.get('adb',0), d.get('shz',0))
   fi
 
 
+
+  # 成长追踪（Round 233）：每 40 轮（约 2-3 小时）量化成长状态，
+  # 让系统知道自己在成长还是维持，而不是只报单指标。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 120 bash ./growth-track.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 思考（Round 224）：设备节点有网关，能做模型级思考。
   # 每 40 轮（约 2-3 小时）想一次，产出写入 self-thoughts.jsonl。
   # 与 CI 的降级思考互补：两边产出的思考会互相可见。
