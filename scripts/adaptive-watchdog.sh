@@ -192,6 +192,16 @@ print(d.get('adb',0), d.get('shz',0))
     ( timeout 60 ./mutual-watch.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
+
+  # 思考（Round 224）：设备节点有网关，能做模型级思考。
+  # 每 40 轮（约 2-3 小时）想一次，产出写入 self-thoughts.jsonl。
+  # 与 CI 的降级思考互补：两边产出的思考会互相可见。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 300 bash -c "
+      ./chain-think.sh || true
+      ./sync-jsonl.sh state/self-thoughts.jsonl 200
+    " >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 日志轮转：每 50 轮（约 2.5-5 小时）检查一次，防止日志无限增长（Round 187）
   if [ $(( n % 50 )) -eq 0 ]; then
     ( timeout 30 ./log-rotate.sh 2000 3 >/dev/null 2>&1 || true ) &
