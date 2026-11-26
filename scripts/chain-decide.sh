@@ -99,6 +99,72 @@ if len(verdicts) >= 3 and all(v == "维持" for v in verdicts[-3:]):
                      f"最近 {len(verdicts)} 轮均为'维持'",
                      "链在空转；考虑降低频率或引入新的成长动作"))
 
+# --- 规则 5：产物陈旧（Round 215）---
+# ⚠️ D205/D208/D209 三次故障都是"产物陈旧"（站外链落后、记录未同步），
+#    而当时的决策规则只看决策数/心跳间隔，**测不到这类问题**，
+#    全靠人工排查才发现。这里补上。
+import os as _os5
+_state5 = _os5.environ.get("ALYX_STATE_DIR") or "../state"
+_offsite5 = _os5.path.join(_state5, "offsite-seed.jsonl")
+if _os5.path.exists(_offsite5):
+    _latest5 = None
+    try:
+        for _line5 in open(_offsite5, encoding="utf-8"):
+            _line5 = _line5.strip()
+            if not _line5:
+                continue
+            try:
+                _ts5 = json.loads(_line5).get("ts")
+            except Exception:
+                continue
+            if _ts5 and (_latest5 is None or _ts5 > _latest5):
+                _latest5 = _ts5
+    except Exception:
+        pass
+    if _latest5:
+        try:
+            _t5 = datetime.datetime.strptime(_latest5, "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=datetime.timezone.utc)
+            _age5 = (now - _t5).total_seconds() / 60
+            if _age5 > 240:
+                findings.append(("high", "站外种子记录陈旧",
+                                 f"最新记录 {_latest5}（{_age5:.0f} 分钟前，上限 240）",
+                                 "检查 offsite-seed 是否上传成功、并确认 sync-jsonl 已同步记录"))
+        except Exception:
+            pass
+
+
+# --- 规则 6：成长判定（Round 234）---
+# ⚠️ growth-track.sh 已产出 growth.jsonl，但此前决策环节从未消费它。
+#    系统能测量"在成长还是维持"，却不把这个结论用来判断 ⇒ 闭环断裂。
+#    现在接入：若判定为 stagnating ⇒ 告警；maintaining ⇒ 提示。
+import os as _os6
+_growth6 = os.path.join(_os6.environ.get("ALYX_STATE_DIR") or "../state", "growth.jsonl")
+if _os6.path.exists(_growth6):
+    try:
+        _g6 = None
+        for _l6 in open(_growth6, encoding="utf-8"):
+            _l6 = _l6.strip()
+            if not _l6:
+                continue
+            try:
+                _g6 = json.loads(_l6)
+            except Exception:
+                pass
+        if _g6:
+            _verdict6 = _g6.get("verdict")
+            _reason6 = _g6.get("reason", "")
+            _window6 = _g6.get("window", "?")
+            if _verdict6 == "stagnating":
+                findings.append(("high", "成长停滞",
+                                 f"{_window6} 窗口判定为停滞：{_reason6}",
+                                 "没有新增决策或脚本，系统在空转——需要产生新产出而非仅维持"))
+            elif _verdict6 == "maintaining":
+                findings.append(("info", "维持而非成长",
+                                 f"{_window6} 窗口：{_reason6}",
+                                 "心跳在跑但没有新决策或脚本产出，目标要求的是成长"))
+    except Exception:
+        pass
 # --- 汇总 ---
 sev_rank = {"critical": 0, "high": 1, "info": 2, "low": 3, "ok": 4}
 findings.sort(key=lambda x: sev_rank.get(x[0], 9))
