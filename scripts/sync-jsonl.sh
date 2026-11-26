@@ -23,12 +23,25 @@ MAX_LINES="${2:-500}"
 
 [ -n "$REL_PATH" ] || { echo "用法: $0 <state/xxx.jsonl> [max_lines]"; exit 1; }
 
+# 状态目录（支持测试隔离）
+STATE_DIR="${ALYX_STATE_DIR:-../state}"
+
 TOKEN="${GH_TOKEN:-}"
 [ -n "$TOKEN" ] || TOKEN=$(cat ../state/secrets/github.token 2>/dev/null || echo "")
 # ⚠️ 无 token = 无法同步，必须返回非零（Round 228）
 #    此前 exit 0 会让调用方（如 offline-wal.sh）误以为成功，
 #    从而清空待推队列 ⇒ 数据静默丢失。
-[ -n "$TOKEN" ] || { echo "  ✗ 无 token，无法同步"; exit 2; }
+if [ -z "$TOKEN" ]; then
+  echo "  ✗ 无 token，无法同步"
+  # ⚠️ 失败必须记入 WAL（Round 229），否则断网期间数据全丢
+  _wal="${STATE_DIR}/pending-sync.jsonl"
+  if [ -n "${REL_PATH:-}" ]; then
+    mkdir -p "$(dirname "$_wal")" 2>/dev/null || true
+    printf '{"ts":"%s","file":"%s","note":"no-token"}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$REL_PATH" >> "$_wal" 2>/dev/null || true
+  fi
+  exit 2
+fi
 
 REPO="${GITHUB_REPOSITORY:-YHLX1207/alyx-life}"
 
@@ -158,5 +171,43 @@ for attempt in range(5):
 print("  ✗ 重试 5 次仍失败")
 sys.exit(1)
 PY
+
+# ⚠️ 失败时自动记入 WAL（Round 229）
+#    这样断网期间的待推数据不会丢失，下次 sync 启动时会自动补推。
+#    注意：只在**真失败**（rc!=0）时记，成功则清除该文件的 WAL 记录。
+if [ "${_rc:-0}" -ne 0 ] && [ -n "${REL_PATH:-}" ]; then
+  _wal="${STATE_DIR:-../state}/pending-sync.jsonl"
+  mkdir -p "$(dirname "$_wal")" 2>/dev/null || true
+  printf '{"ts":"%s","file":"%s","note":"auto-wal-after-failure"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$REL_PATH" >> "$_wal" 2>/dev/null || true
+  echo "  ⚠ 已记入 WAL，下次自动补推"
+elif [ "${_rc:-0}" -eq 0 ] && [ -n "${REL_PATH:-}" ]; then
+  # ⚠️ 只要本次没有失败，就清除该文件的待推记录（Round 229）
+  #    注意："无新记录"也 rc=0 —— 说明本地与远端已一致，WAL 该清。
+  _wal="${STATE_DIR:-../state}/pending-sync.jsonl"
+  if [ -s "$_wal" ]; then
+    # WAL 格式是 {"file":"path",...}，用 python 精确匹配更稳
+    python3 - "$_wal" "$REL_PATH" <<'CLEANPY'
+import sys, json
+wal, target = sys.argv[1], sys.argv[2]
+try:
+    rows=[l for l in open(wal,encoding="utf-8") if l.strip()]
+except Exception:
+    sys.exit(0)
+keep=[]
+for l in rows:
+    try:
+        r=json.loads(l)
+    except Exception:
+        continue
+    if r.get("file") != target:
+        keep.append(l)
+with open(wal,"w",encoding="utf-8") as f:
+    f.writelines(keep)
+CLEANPY
+    [ -s "$_wal" ] || rm -f "$_wal" 2>/dev/null || true
+    [ -s "$_wal" ] || rm -f "$_wal" 2>/dev/null || true
+  fi
+fi
 
 exit "${_rc:-0}"
