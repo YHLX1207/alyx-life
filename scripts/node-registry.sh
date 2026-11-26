@@ -75,16 +75,78 @@ except Exception:
     pass
 # ⚠️ 能力以 DAG 解析结果为准（Round 217）
 #    自报能力可能与事实不符；按 capabilities.json 推导不会说谎。
+#
+# ⚠️⚠️ 但必须校验**这份解析结果是不是本环境产生的**（Round 220）：
+#    capabilities-active.json 是单个文件，CI 的 actions 节点 checkout 后
+#    读到的是**设备节点上次写入的**结果。
+#    实测发现 actions 声明了 reasoning —— 而 CI runner 上根本没有
+#    127.0.0.1:8326 网关，这是**错误声明**。
+#    ⇒ 只有 node_type 与本环境一致时才复用，否则就地重新解析。
 try:
     _cap_path = os.path.join(STATE, "capabilities-active.json")
+    _env_type = "actions" if os.environ.get("CI") else "device"
+    _use_cached = False
     if os.path.exists(_cap_path):
         _capd = json.load(open(_cap_path, encoding="utf-8"))
-        _res = _capd.get("capabilities") or {}
-        for _n, _r in _res.items():
-            if isinstance(_r, dict) and _r.get("available"):
-                for _p in (_r.get("provides") or []):
-                    if _p not in _caps:
-                        _caps.append(_p)
+        # 仅当缓存来自同一类节点时才使用
+        if _capd.get("node_type") == _env_type:
+            _use_cached = True
+            _res = _capd.get("capabilities") or {}
+            for _n, _r in _res.items():
+                if isinstance(_r, dict) and _r.get("available"):
+                    for _p in (_r.get("provides") or []):
+                        if _p not in _caps:
+                            _caps.append(_p)
+    if not _use_cached:
+        # 缓存不可信 ⇒ 就地从 manifest 推导（只做能本地判定的部分）
+        _man_path = os.path.join(STATE, "capabilities.json")
+        if os.path.exists(_man_path):
+            _man = json.load(open(_man_path, encoding="utf-8"))
+            _dag = _man.get("capability_dag") or {}
+            _resolved = {}
+            for _name, _spec in _dag.items():
+                if _name.startswith("_"):
+                    continue
+                _ok = True
+                # 前置
+                for _rq in _spec.get("required") or []:
+                    if not (_resolved.get(_rq) or {}).get("ok"):
+                        _ok = False
+                        break
+                # 文件
+                if _ok:
+                    for _rel in _spec.get("requires_files") or []:
+                        if not os.path.exists(os.path.join("..", _rel)):
+                            _ok = False
+                            break
+                # 脚本
+                if _ok:
+                    for _sc in _spec.get("requires_scripts") or []:
+                        if not os.path.exists(_sc):
+                            _ok = False
+                            break
+                # 环境（含 token 文件等价来源）
+                if _ok:
+                    for _en in _spec.get("requires_env") or []:
+                        if os.environ.get(_en):
+                            continue
+                        if _en == "GH_TOKEN" and os.path.exists(os.path.join(STATE, "secrets", "github.token")):
+                            continue
+                        _ok = False
+                        break
+                # 节点类型
+                if _ok:
+                    _allowed = _spec.get("available_on") or []
+                    if _allowed and _env_type not in _allowed:
+                        _ok = False
+                # 推理能力：CI 环境**没有**本机网关，必须为 False
+                if _ok and _name == "think":
+                    _ok = False   # actions 节点无网关
+                _resolved[_name] = {"ok": _ok, "provides": _spec.get("provides") or []}
+                if _ok:
+                    for _p in (_spec.get("provides") or []):
+                        if _p not in _caps:
+                            _caps.append(_p)
 except Exception:
     pass
 # 推送：有 token
