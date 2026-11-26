@@ -127,7 +127,7 @@ for (sev, norm), count in finding_counts.most_common():
 
 if not proposals:
     print("  · 未发现需要提议规则的反复模式")
-    sys.exit(0)
+# ⚠️ 不在此 exit：行动提议在规则提议之后，需要独立判断（Round 238）
 
 # 写入
 os.makedirs(state, exist_ok=True)
