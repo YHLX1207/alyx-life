@@ -163,7 +163,7 @@ for model in _ordered_models:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
-        "max_tokens": 400,
+        "max_tokens": 1500,   # 推理模型会消耗 reasoning tokens，400 不够（Round 250）
         "temperature": 0.8,
     }).encode()
 
@@ -179,10 +179,35 @@ for model in _ordered_models:
         msg = resp["choices"][0]["message"]
         thought = (msg.get("content") or "").strip()
         if not thought:
-            thought = (msg.get("reasoning_content") or "").strip()
-        thought = re.sub(r"\s+", " ", thought)[:300]
+            # ⚠️ 回退到 reasoning_content 时有风险（Round 250）：
+            #    实测 codearts/GLM-5.2 有时 content 为空，reasoning_content 里是
+            #    "思考草稿"（复述 prompt、列举数据），不是最终答案。
+            #    质检：如果内容像是在复述 prompt，判为无效，换下一个模型。
+            _raw_reasoning = (msg.get("reasoning_content") or "").strip()
+            thought = _raw_reasoning
+            # 检测复述 prompt 的特征
+            _echo_markers = [
+                "用户希望", "请用", "要求：", "下面是你自己",
+                "分析数据", "让我", "我需要", "首先", "根据",
+            ]
+            _echo_hits = sum(1 for m in _echo_markers if m in thought)
+            if _echo_hits >= 2:
+                last_err = f"{model}: reasoning 是草稿（复述 prompt），跳过"
+                continue
+            # 检测是否是未完成的句子
+            if thought and not thought.rstrip().endswith(("。", "！", "？", "…", ".", "!", "?")):
+                if len(thought) > 100:
+                    last_err = f"{model}: reasoning 未完成，跳过"
+                    continue
+
+        thought = re.sub(r"\s+", " ", thought).strip()[:300]
         if not thought:
             last_err = f"{model}: 空响应"
+            continue
+        # ⚠️ 过短判为无效（Round 250）：实测 "决策数还卡" 只有 6 个字，
+        #    说明模型被截断或没说完。换下一个模型重试。
+        if len(thought) < 15:
+            last_err = f"{model}: 输出过短（{len(thought)} 字），换模型"
             continue
         # 成功
         rec = {"ts": ts, "model": model, "thought": thought, "material_len": len(material)}
