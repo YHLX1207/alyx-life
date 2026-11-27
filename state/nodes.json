@@ -25,14 +25,14 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 5.02
+  "age_hours": 5.54
  },
  "actions": {
   "id": "actions",
   "did": null,
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-27T02:42:24Z",
-  "beats": 68,
+  "last_seen": "2026-11-27T03:13:31Z",
+  "beats": 69,
   "kind": "actions",
   "caps": [
    "bootstrap",
@@ -53,7 +53,7 @@
   "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-27T02:42:24Z",
+  "ts": "2026-11-27T03:13:31Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions"
