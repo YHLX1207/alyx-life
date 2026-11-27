@@ -83,27 +83,27 @@ if os.path.exists(_prop_path):
 ACTIONS = {
     "心跳间隔过长": (
         "触发远端唤醒，缩短下次心跳间隔",
-        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1"],
     ),
     "存在心跳中断": (
         "触发远端唤醒，确认链未被限流",
-        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1"],
     ),
     "工作流心跳完全缺失": (
         "触发远端唤醒，并记录告警",
-        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 60 ./trigger-remote.sh >/dev/null 2>&1"],
     ),
     "站外种子记录陈旧": (
         "立即重新上传站外种子",
-        ["bash", "-c", "timeout 300 ./offsite-seed.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 300 ./offsite-seed.sh >/dev/null 2>&1"],
     ),
     "成长停滞": (
         "触发一次自省，检查是否有未发现的问题",
-        ["bash", "-c", "timeout 120 ./chain-reflect.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 120 ./chain-reflect.sh >/dev/null 2>&1"],
     ),
     "反复模式再次出现": (
         "记录告警并触发一次完整自检",
-        ["bash", "-c", "timeout 120 ./check-portable.sh >/dev/null 2>&1 || true"],
+        ["bash", "-c", "timeout 120 ./check-portable.sh >/dev/null 2>&1"],
     ),
 }
 
