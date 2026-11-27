@@ -133,6 +133,35 @@ try:
 except Exception:
     pass
 
+# ⚠️⚠️ 设备在线时跳过（Round 250 重构）：
+#    规则思考是**兜底**，不是主力。设备节点能访问网关，应让它做模型思考。
+#    只有当设备节点失联（心跳 > 90 分钟）时，规则思考才接管。
+#    此前两者同时跑，替补比主力频繁 4-6 倍 ⇒ 规则思考淹没模型思考。
+_device_alive = False
+try:
+    _nodes_f = json.load(open(os.path.join(state, "nodes.json"), encoding="utf-8"))
+    for _k, _v in _nodes_f.items():
+        if _k == "_summary" or not isinstance(_v, dict):
+            continue
+        if not _k.startswith("device"):
+            continue
+        _ls = _v.get("last_seen", "")
+        try:
+            import datetime as _dtdev
+            _lt = _dtdev.datetime.strptime(_ls, "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=_dtdev.timezone.utc)
+            _age = (now - _lt).total_seconds() / 60
+            if _age <= 90:
+                _device_alive = True
+        except Exception:
+            pass
+except Exception:
+    pass
+
+if _device_alive:
+    print("  · 设备节点在线（≤90 分钟有心跳），规则思考让位于模型思考")
+    sys.exit(0)
+
 # ⚠️ 信息增量门槛（Round 249）：
 #    实测发现规则思考在重复同一句话，只是数字变化（"写下9条决策"→"写下7条"）。
 #    那不是思考，是报表。没有信息增量的思考不应该被记录。
