@@ -40,8 +40,38 @@ GW_KEY="${ALYX_GATEWAY_KEY:-}"
 POLLINATIONS_URL="https://text.pollinations.ai/openai"
 POLLINATIONS_MODEL="${ALYX_CLOUD_MODEL:-openai}"
 
-if [ -z "$GW_KEY" ]; then
-  echo "  无本机网关 key ⇒ 使用云端推理（pollinations）"
+# ⚠️ 第二优先级：modelscope 直连（Round 254）
+#    解析 jethub 插件原理后发现：它的凭据是**可移植的静态 token**，
+#    可直接调用上游 API，不需要本地网关。
+#    实测 5 个模型可用（mistral/Nex/DeepSeek 等）。
+MS_TOKEN=""
+MS_URL="https://api-inference.modelscope.cn/v1"
+MS_MODELS="mistralai/Mistral-Large-Instruct-2407,nex-agi/Nex-N2.5-Pro,deepseek-ai/DeepSeek-V4-Pro-0813,nex-agi/Nex-N2.5-mini,deepseek-ai/DeepSeek-V4.1-Flash-1017"
+# 从 CI secret 或本地凭据文件取
+if [ -n "${MODELSCOPE_TOKEN:-}" ]; then
+  MS_TOKEN="$MODELSCOPE_TOKEN"
+else
+  MS_TOKEN=$(python3 -c "
+import re
+try:
+    txt=open('/root/projects/.dsh/.credentials.yaml',encoding='utf-8').read()
+    for l in txt.split(chr(10)):
+        m=re.match(r'\s*(MODELSCOPE[A-Z0-9_]*):\s*(.*)', l)
+        if m:
+            t=re.search(r'\"access_token\"\s*:\s*\"([^\"]+)\"', m.group(2))
+            if t: print(t.group(1)); break
+except Exception: pass
+" 2>/dev/null)
+fi
+
+if [ -z "$GW_KEY" ] && [ -n "$MS_TOKEN" ]; then
+  echo "  无本机网关 ⇒ 使用 modelscope 直连（jethub 凭据）"
+  GW_URL="$MS_URL"
+  GW_KEY="$MS_TOKEN"
+  MODELS="$MS_MODELS"
+  USE_CLOUD=1
+elif [ -z "$GW_KEY" ]; then
+  echo "  无本机网关、无 modelscope ⇒ 使用 pollinations（免 key）"
   GW_URL="$POLLINATIONS_URL"
   GW_KEY="__pollinations_no_key__"
   USE_CLOUD=1
@@ -49,9 +79,12 @@ else
   USE_CLOUD=0
 fi
 
-# 模型候选：云端模式用 pollinations 的模型名，本地模式用网关的
+# 模型候选：按后端选择（modelscope 已在上面设好 MODELS，不覆盖）
 if [ "${USE_CLOUD:-0}" = "1" ]; then
-  MODELS="${ALYX_THINK_MODELS:-$POLLINATIONS_MODEL}"
+  # 云端：如果 MODELS 已由 modelscope 分支设置，保持不变
+  if [ -z "${MODELS:-}" ]; then
+    MODELS="${ALYX_THINK_MODELS:-$POLLINATIONS_MODEL}"
+  fi
 else
   MODELS="${ALYX_THINK_MODELS:-codearts/GLM-5.2,buddy/hy4-preview,modelscope/deepseek-ai/DeepSeek-V4-Pro-0813,trae/Doubao-Seed-Code,loomy/spark-x2.6,astudio/xopglm52,opencode/big-pickle,jet-hub-auto/auto}"
 fi
