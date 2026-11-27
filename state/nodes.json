@@ -3,8 +3,8 @@
   "id": "device-localhost",
   "did": "did:alyx:shamir-2of3",
   "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-27T14:21:01Z",
-  "beats": 92,
+  "last_seen": "2026-11-27T14:51:03Z",
+  "beats": 93,
   "kind": "device",
   "caps": [
    "bootstrap",
@@ -25,7 +25,7 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 0.39
+  "age_hours": 0.0
  },
  "actions": {
   "id": "actions",
@@ -53,7 +53,7 @@
   "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-27T14:44:15Z",
+  "ts": "2026-11-27T14:51:03Z",
   "total_nodes": 2,
   "active_nodes": [
    "device-localhost",
