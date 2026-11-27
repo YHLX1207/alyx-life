@@ -59,3 +59,5 @@
 {"ts": "2026-11-27T21:21:44Z", "model": "codearts/GLM-5.2", "thought": "D204 仍无落地证据，和上次一样没有新发现，我还在原地等确认。", "material_len": 1045}
 {"ts": "2026-11-27T22:15:49Z", "model": "openai", "thought": "我该确认 D204 的上传重试是否已落地；目前仍没有证据，和上次相比没有新发现。", "material_len": 1044}
 {"ts": "2026-11-27T22:15:55Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.11593353333333334}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 234.39926686666666}]}
+{"ts": "2026-11-27T22:47:10Z", "model": "openai", "thought": "我该先核实站外种子记录是否已刷新；这是新出现的高优先级问题，D204 的落地仍待确认。", "material_len": 1070}
+{"ts": "2026-11-27T22:47:14Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.07604965000000001}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 265.70938298333334}]}
