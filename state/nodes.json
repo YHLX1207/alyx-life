@@ -3,8 +3,8 @@
   "id": "actions",
   "did": null,
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-26T23:33:14Z",
-  "beats": 62,
+  "last_seen": "2026-11-27T00:04:55Z",
+  "beats": 63,
   "kind": "actions",
   "caps": [
    "bootstrap",
@@ -50,15 +50,14 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 1.87
+  "age_hours": 2.4
  },
  "_summary": {
-  "ts": "2026-11-26T23:33:14Z",
+  "ts": "2026-11-27T00:04:55Z",
   "total_nodes": 2,
   "active_nodes": [
-   "actions",
-   "device-localhost"
+   "actions"
   ],
-  "quorum": "healthy"
+  "quorum": "degraded"
  }
 }
