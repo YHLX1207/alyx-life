@@ -103,3 +103,4 @@
 {"ts": "2026-11-27T22:15:42Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.4, "beats": 107}], "takeover_needed": false}
 {"ts": "2026-11-27T22:46:55Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.92, "beats": 107}], "takeover_needed": false}
 {"ts": "2026-11-27T23:18:13Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.44, "beats": 107}], "takeover_needed": false}
+{"ts": "2026-11-27T23:49:35Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.96, "beats": 107}], "takeover_needed": false}
