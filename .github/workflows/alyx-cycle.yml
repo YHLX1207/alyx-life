@@ -371,21 +371,34 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "自我唤醒：30 分钟后触发下一轮"
-          sleep 1800   # 30 分钟间隔
-          # 重试 3 次，避免瞬时失败断链
-          for i in 1 2 3; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -d '{"ref":"main"}' \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/alyx-cycle.yml/dispatches" 2>/dev/null)
-            if [ "$code" = "204" ]; then
-              echo "  ✓ 已自我触发（第 $i 次尝试成功）"
-              exit 0
+            # ⚠️⚠️ 先派发再 sleep（Round 258，关键修复）：
+            #    此前 sleep 1800 在派发之前 —— 前面步骤耗时后，
+            #    总时长达到 timeout-minutes(60) ⇒ 在派发前被杀，链断。
+            #    实测 #184 即为此类：所有步骤成功，但在 sleep 中被超时杀死。
+            #
+            #    现在：先派发下一轮（链已延续），再 sleep 等待。
+            #    即使本运行随后超时，链也不会中断。
+            echo "自我唤醒：先派发下一轮，再等待 30 分钟"
+            # 先派发（链的延续优先）
+            dispatched=0
+            for i in 1 2 3; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                -H "Authorization: token $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -d '{"ref":"main"}' \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/alyx-cycle.yml/dispatches" 2>/dev/null)
+              if [ "$code" = "204" ]; then
+                echo "  ✓ 已自我触发下一轮（第 $i 次尝试成功）"
+                dispatched=1
+                break
+              fi
+              echo "  第 $i 次失败 (HTTP $code)，5 秒后重试"
+              sleep 5
+            done
+            if [ "$dispatched" -eq 0 ]; then
+              echo "  ✗ 自我触发失败，链在此中断 —— 需人工或外部触发恢复"
+              exit 1
             fi
-            echo "  第 $i 次失败 (HTTP $code)，5 秒后重试"
-            sleep 5
-          done
-          echo "  ✗ 自我触发失败，链在此中断 —— 需人工或外部触发恢复"
-          exit 1
+            # 派发成功后等待，让本运行自然结束（避免空转占用配额）
+            sleep 1800   # 30 分钟间隔
+            echo "  ✓ 等待结束，本运行完成"
