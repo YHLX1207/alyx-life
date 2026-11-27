@@ -210,6 +210,10 @@ print(d.get('adb',0), d.get('shz',0))
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 60 bash ./evolution-summary.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
+  # 进化提议协调（Round 247）：合并设备与 CI 的提议，解决分叉。
+  if [ $(( n % 40 )) -eq 0 ]; then
+    ( timeout 120 bash ./evolve-sync.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 规则自增（Round 235）：每 40 轮从决策历史发现反复模式，提议新规则。
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 120 bash ./chain-evolve.sh >> ../logs/watchdog.log 2>&1 || true ) &
