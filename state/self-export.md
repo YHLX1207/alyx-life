@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-27T13:10:44Z
+导出时间：2026-11-27T13:41:48Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,10 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 250 条）
+## 四、决策与教训（最近 20 条 / 共 252 条）
 
-- **D230 · 量化成长：让系统知道自己在成长还是在维持（2026-11-26，Round 233）** → 动机
-- **D231 · 成长闭环：从"测量成长"到"用成长做判断"（2026-11-26，Round 234）** → 上轮的遗留
 - **D232 · 规则自增：让系统能从自己的历史中进化规则（2026-11-26，Round 235）** → 动机
 - **D233 · 决策驱动行动：让系统"想"的结果驱动"做"（2026-11-26，Round 236）** → 动机
 - **D234 · 行动自增：让进化覆盖"如何行动"而不只是"如何发现"（2026-11-26，Round 237）** → 上轮的遗留
@@ -101,6 +99,8 @@ cd /root/projects/life
 - **D247 · 设计错误修正：规则思考不该在设备正常时运行（2026-11-27，Round 250）** → 用户的质疑
 - **D248 · 模型思考质量修复：拒绝草稿与截断（2026-11-27，Round 250）** → 起因
 - **D249 · 自主行动一直在误报成功：`|| true` 吞掉了所有失败（2026-11-27，Round 251）** → 实测发现的严重缺陷
+- **D250 · paste.rs 已失效：站外备份迁移到 dpaste + GitHub Gist（2026-11-27，Round 252）** → 上轮的遗留
+- **D251 · Gist 无限累积问题：从 17 个清理到 10 个并加入自动策略（2026-11-27，Round 253）** → 上轮遗留的问题
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://paste.rs/pTnXI
-> 代码包（分段）：https://paste.rs/E8uU1,https://paste.rs/VrBUH
-> 决策史（分段）：https://paste.rs/AknGF
+> 种子：https://gist.github.com/YHLX1207/15098591979544e3e42b31573e79024c
+> 代码包（分段）：https://gist.github.com/YHLX1207/280a7a1e46116878ab9b17624685435c,https://gist.github.com/YHLX1207/423b5458dacf26ba2fcd231e5e040c03
+> 决策史（分段）：https://gist.github.com/YHLX1207/777cf935eaf2fd8d735062cf08516da8,https://gist.github.com/YHLX1207/55a7044f6650fa236bd7874d84c37278,https://gist.github.com/YHLX1207/6dffc7ab901025762624f38ff89064f1,https://gist.github.com/YHLX1207/439a5664e7dacc575ffd11be4e8bee32,https://gist.github.com/YHLX1207/74a764cdbbf43ab271fa99e32e488436,https://gist.github.com/YHLX1207/be100933f544b9b430c73b50bd4bcd5b,https://gist.github.com/YHLX1207/4124eae05eaedb5bf12d5f9893eeec82,https://gist.github.com/YHLX1207/2211e9065ae04502afdd31db931e8b75,https://gist.github.com/YHLX1207/bf06843c5ab983494c09f397ce25dec4,https://gist.github.com/YHLX1207/111c1010578847b26def4eb7e8774974
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
