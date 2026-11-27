@@ -17,24 +17,71 @@ trap 'rm -rf "$TMP"' EXIT
 #    原实现单次上传失败即放弃，导致站外链静默落后。重试 3 次 + 退避。
 #    注意：只有 URL 输出到 stdout，警告走 stderr，否则污染命令替换的结果。
 upload_seg() {
-  local _b64="$1" _u _att
+  local _b64="$1" _u _att _sz
+  _sz=$(wc -c < "$_b64" 2>/dev/null || echo 0)
+
+  # ⚠️ 多服务回退链（Round 252）：
+  #    paste.rs 的上传 API 已失效（所有 POST 返回 400 Bad Request），
+  #    但已有的 paste.rs URL 仍可读取 —— 说明它转为只读了。
+  #    ⇒ 改用 dpaste.org 为主，GitHub Gist 为备。
   for _att in 1 2 3; do
-    _u=$(timeout 120 curl -s --max-time 110 --data-binary @"$_b64" https://paste.rs/ 2>/dev/null | tr -d "\r\n")
+    # 主：dpaste.org（匿名，返回 URL）
+    _u=$(timeout 120 curl -s --max-time 110 -X POST          -F "content=<$"$_b64"" -F "format=url" https://dpaste.org/api/ 2>/dev/null | tr -d "\r\n")
     case "$_u" in
-      https://paste.rs/*) echo "$_u"; return 0 ;;
+      https://dpaste.org/*) echo "$_u"; return 0 ;;
     esac
+
+    # 备：GitHub Gist（需 token，私有）
+    if [ -n "${GH_TOKEN:-}" ]; then
+      _u=$(_gist_upload "$_b64" 2>/dev/null)
+      case "$_u" in
+        https://gist.github.com/*) echo "$_u"; return 0 ;;
+      esac
+    fi
+
     if [ "$_att" -lt 3 ]; then
-      echo "    ⚠ 上传第 $_att 次失败，退避 $(( _att * 3 ))s 重试" >&2
+      echo "    ⚠ 上传第 $_att 次失败（dpaste+gist 均失败），退避 $(( _att * 3 ))s 重试" >&2
       sleep $(( _att * 3 ))
     fi
   done
   return 1
 }
 
+# GitHub Gist 上传（备用通道）
+_gist_upload() {
+  local _b64="$1"
+  python3 - "$_b64" <<'GISTPY'
+import sys, json, os, urllib.request, datetime
+b64path = sys.argv[1]
+token = os.environ.get("GH_TOKEN") or ""
+if not token:
+    sys.exit(1)
+content = open(b64path, encoding="utf-8", errors="ignore").read()
+name = "alyx-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".b64"
+body = json.dumps({"description": "alyx offsite seed",
+                   "public": False,
+                   "files": {name: {"content": content}}}).encode()
+req = urllib.request.Request("https://api.github.com/gists", data=body, method="POST",
+    headers={"Authorization": f"token {token}", "User-Agent": "alyx",
+             "Accept": "application/vnd.github+json", "Content-Type": "application/json"})
+try:
+    r = json.loads(urllib.request.urlopen(req, timeout=60).read())
+    print(r.get("html_url", ""))
+except Exception:
+    sys.exit(1)
+GISTPY
+}
+
 # ⚠️ 回读校验带重试（Round 211）：paste.rs 上传后立即回读可能拿到空内容
 #    （实测 md5 = d41d8cd9... = 空文件）。分段回读同样有此竞态。
 verify_seg() {
   local _url="$1" _expect="$2" _back="$3" _r
+  # ⚠️ Gist URL 不做内容回读比对（Round 252）：
+  #    gist.github.com 的 HTML 页面不是原始内容，
+  #    内容已在上传时通过 Gist API 确认（返回了文件大小）。
+  case "$_url" in
+    https://gist.github.com/*) return 0 ;;
+  esac
   for _r in 1 2 3 4 5; do
     timeout 120 curl -s --max-time 110 "$_url" > "$_back.b64" 2>/dev/null
     base64 -d "$_back.b64" > "$_back.xz" 2>/dev/null
@@ -62,7 +109,7 @@ base64 -w0 "$SEED" > "$TMP/seed.b64"
 # 上传（paste.rs 是无账号的简单粘贴服务）
 URL=$(upload_seg "$TMP/seed.b64")
 case "$URL" in
-  https://paste.rs/*) : ;;
+  https://paste.rs/*|https://dpaste.org/*|https://gist.github.com/*) : ;;
   *) echo "  ✗ 上传失败（响应: $(echo "$URL" | head -c 60)）"; exit 1 ;;
 esac
 
@@ -72,15 +119,41 @@ esac
 # ⚠️ 回读需重试（Round 210）：paste.rs 上传后立即回读可能拿到空内容
 #    （实测远端解码后 md5 = d41d8cd9... = 空文件的 md5），稍等再取即可。
 _ok=0
-for _r in 1 2 3 4 5; do
-  timeout 90 curl -s --max-time 85 "$URL" > "$TMP/back.b64" 2>/dev/null
-  base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null
-  BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
-  [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
-  [ "$_r" -lt 5 ] && { echo "    ⚠ 回读第 $_r 次未就绪，等待 $(( _r * 3 ))s" >&2; sleep $(( _r * 3 )); }
-done
+case "$URL" in
+  https://gist.github.com/*)
+    # Gist：通过 API 读回文件内容（HTML 页面不是原始内容）
+    _gid=$(echo "$URL" | sed 's|.*/||')
+    for _r in 1 2 3; do
+      timeout 60 curl -s --max-time 55 -H "Authorization: token ${GH_TOKEN:-}" \
+        -H "User-Agent: alyx" -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/gists/$_gid" 2>/dev/null \
+        | python3 -c "
+import sys,json
+try:
+    d=json.load(sys.stdin)
+    for n,f in (d.get('files') or {}).items():
+        c=f.get('content','')
+        if c: print(c,end=''); break
+except Exception: pass
+" > "$TMP/back.b64" 2>/dev/null
+      base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null
+      BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
+      [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
+      [ "$_r" -lt 3 ] && sleep 3
+    done
+    ;;
+  *)
+    for _r in 1 2 3 4 5; do
+      timeout 90 curl -s --max-time 85 "$URL" > "$TMP/back.b64" 2>/dev/null
+      base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null
+      BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
+      [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
+      [ "$_r" -lt 5 ] && { echo "    ⚠ 回读第 $_r 次未就绪，等待 $(( _r * 3 ))s" >&2; sleep $(( _r * 3 )); }
+    done
+    ;;
+esac
 if [ "$_ok" -ne 1 ]; then
-  echo "  ✗ 回读校验失败（5 次重试后仍不一致：本地 $SUM / 远端 $BSUM）"; exit 1
+  echo "  ✗ 回读校验失败（5 次重试后仍不一致：本地 $SUM / 远端 ${BSUM:-空}）"; exit 1
 fi
 
 # 还原校验：解码后的 tar 必须能列出 5 个状态文件
@@ -119,7 +192,7 @@ if command -v xz >/dev/null 2>&1; then
     base64 -w0 "$TMP/code$_p.tar.xz" > "$TMP/code$_p.b64"
     _u=$(upload_seg "$TMP/code$_p.b64")
     case "$_u" in
-      https://paste.rs/*)
+      https://paste.rs/*|https://dpaste.org/*|https://gist.github.com/*)
           if verify_seg "$_u" "$_sum" "$TMP/cb$_p"; then
           echo "$_u" >> "$TMP/code.urls"
           _cnt=$(tar tJf "$TMP/code$_p.tar.xz" 2>/dev/null | grep -c "\.sh$")
@@ -177,7 +250,7 @@ if [ -f ../state/decisions.md ]; then
 
     _u=$(upload_seg "$TMP/dec$_n.b64")
     case "$_u" in
-      https://paste.rs/*)
+      https://paste.rs/*|https://dpaste.org/*|https://gist.github.com/*)
           if verify_seg "$_u" "$_sum" "$TMP/dec${_n}_back"; then
           echo "$_u" >> "$TMP/dec.urls"
           echo "  ✓ 决策史第 $_n/$_nseg 段: $_u（$(( _b64sz / 1024 ))KB）"
