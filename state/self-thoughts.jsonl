@@ -35,3 +35,5 @@
 {"ts": "2026-11-27T16:17:56Z", "model": "openai", "thought": "我还没有确认站外链上传的重试修复是否落地；这是眼下最需要补上的验证。", "material_len": 1055}
 {"ts": "2026-11-27T16:18:02Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 6 次，写下了 2 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 6}, {"k": "decision_delta", "v": 2}, {"k": "thought_age", "v": 0.10938731666666666}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 185.54272064999998}]}
 {"ts": "2026-11-27T16:21:12Z", "model": "codearts/GLM-5.2", "thought": "连续三次都在问 D204 修复是否落地，至今没有新证据表明它已解决，我仍卡在同一个点上。", "material_len": 1076}
+{"ts": "2026-11-27T16:50:01Z", "model": "openai", "thought": "我还没有新发现：站外链上传重试修复是否落地，仍缺少验证。", "material_len": 1053}
+{"ts": "2026-11-27T16:50:05Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 6 次，写下了 5 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 6}, {"k": "decision_delta", "v": 5}, {"k": "thought_age", "v": 0.08310835}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 45.91644168333333}]}
