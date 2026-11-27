@@ -133,34 +133,15 @@ try:
 except Exception:
     pass
 
-# ⚠️⚠️ 设备在线时跳过（Round 250 重构）：
-#    规则思考是**兜底**，不是主力。设备节点能访问网关，应让它做模型思考。
-#    只有当设备节点失联（心跳 > 90 分钟）时，规则思考才接管。
-#    此前两者同时跑，替补比主力频繁 4-6 倍 ⇒ 规则思考淹没模型思考。
-_device_alive = False
-try:
-    _nodes_f = json.load(open(os.path.join(state, "nodes.json"), encoding="utf-8"))
-    for _k, _v in _nodes_f.items():
-        if _k == "_summary" or not isinstance(_v, dict):
-            continue
-        if not _k.startswith("device"):
-            continue
-        _ls = _v.get("last_seen", "")
-        try:
-            import datetime as _dtdev
-            _lt = _dtdev.datetime.strptime(_ls, "%Y-%m-%dT%H:%M:%SZ").replace(
-                tzinfo=_dtdev.timezone.utc)
-            _age = (now - _lt).total_seconds() / 60
-            if _age <= 90:
-                _device_alive = True
-        except Exception:
-            pass
-except Exception:
-    pass
-
-if _device_alive:
-    print("  · 设备节点在线（≤90 分钟有心跳），规则思考让位于模型思考")
-    sys.exit(0)
+# ⚠️ 设备在线判断已移除（Round 254 修正）：
+#    原逻辑"设备在线则跳过"在 CI 里会**阻止** CI 自身产出兜底思考。
+#    CI 里设备确实在线，但 CI 自己也在做模型思考（modelscope/pollinations），
+#    当 CI 的模型思考失败时，本兜底必须能接管 —— 设备在线不应成为阻塞条件。
+#    
+#    改为依赖更精确的两个判据：
+#      1. 5 分钟窗口内已有思考 ⇒ 跳过（防止同轮重复）
+#      2. 信息增量门槛 ⇒ 无实质变化不记录
+#    这两个判据足以避免噪音，且不会误伤需要兜底的场景。
 
 # ⚠️ 信息增量门槛（Round 249）：
 #    实测发现规则思考在重复同一句话，只是数字变化（"写下9条决策"→"写下7条"）。
