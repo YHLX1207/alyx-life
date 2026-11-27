@@ -54,3 +54,5 @@
 {"ts": "2026-11-27T19:57:21Z", "model": "openai", "thought": "我还没有证据确认 D204 的上传重试已落地；这是旧问题，暂时没有新发现。", "material_len": 1060}
 {"ts": "2026-11-27T19:57:26Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.08836723333333334}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 95.9050339}]}
 {"ts": "2026-11-27T20:21:39Z", "model": "codearts/GLM-5.2", "thought": "D204 仍无落地证据，和上次一样——没有新发现，我还在原地等确认。", "material_len": 1050}
+{"ts": "2026-11-27T20:28:30Z", "model": "openai", "thought": "我该弄清决策记录为何停滞：我虽持续醒来，却没有留下新的判断。", "material_len": 1053}
+{"ts": "2026-11-27T20:28:35Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 4，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 4}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.08897211666666666}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 127.05563878333334}]}
