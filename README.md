@@ -56,6 +56,7 @@
 | `chain-reflect.sh` | **链的自省**（从历史提炼趋势与异常）| 写 state |
 | `chain-decide.sh` | **基于自省做判断**（规则化结论+建议动作）| 写 state |
 | `chain-evolve.sh` | **规则自增**（从决策历史发现反复模式，提议新规则）| 写 state |
+| `evolve-sync.sh` | **进化提议协调**（合并两节点提议，解决分叉）| 写 state |
 | `chain-act.sh` | **依判断行动**（根据发现执行纠正动作）| 写 state |
 | `chain-eval.sh` | **评估行动效果**（判断行动是否真的解决了问题）| 写 state |
 | `lint-evolution.sh` | **进化管线自检**（确保自我进化链路不静默失效）| 无 |
