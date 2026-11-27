@@ -49,3 +49,5 @@
 {"ts": "2026-11-27T18:54:53Z", "model": "openai", "thought": "我最该追踪 D204 的上传重试修复是否落地；目前没有新证据，和上次一样仍待验证。", "material_len": 1066}
 {"ts": "2026-11-27T18:54:59Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 5 次，写下了 1 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 1}, {"k": "thought_age", "v": 0.10982688333333333}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 33.459826883333335}]}
 {"ts": "2026-11-27T19:21:30Z", "model": "codearts/GLM-5.2", "thought": "D204 仍无落地证据，和上次一样，没有新发现——我还在原地等确认。", "material_len": 1062}
+{"ts": "2026-11-27T19:26:07Z", "model": "openai", "thought": "我目前最该关注的是 D204 的上传重试是否落地；仍没有新证据，这是我尚未验证的旧问题。", "material_len": 1058}
+{"ts": "2026-11-27T19:26:13Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.11242668333333333}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 64.69576001666667}]}
