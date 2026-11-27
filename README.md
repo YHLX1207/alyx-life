@@ -73,6 +73,7 @@
 | `lint-secrets.sh` | **敏感文件泄露检查**（git/备份/快照三条路径）| 无 |
 | `lint-workflow-flow.sh` | **工作流数据流检查**（产出必须有同步配对）| 无 |
 | `offline-wal.sh` | **离线暂存**（GitHub 不可用时保数据，恢复后补推）| 写 state |
+| `gist-cleanup.sh` | **Gist 清理**（保留最近 N 个，删除过期备份）| 无 |
 | `push-merge.sh` | **安全推送 JSONL**（先合并远端，防覆盖）| 无 |
 | `node-bootstrap.sh` | **节点自举**（探测能力 + 生成身份 + 汇总网络）| 写 state |
 | `sync-decisions.sh` | **决策记录 API 同步**（绕开 git 冲突）| 无 |
