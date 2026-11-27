@@ -75,12 +75,22 @@ for _t in reversed(_thoughts_now):
         _a = (now - _tt).total_seconds() / 60
     except Exception:
         pass
-    # 只要时间窗口内**已有任何**思考记录，就跳过
-    # （不论它来自模型还是规则——避免一轮产出两条）
+    # ⚠️ 防重窗口调整（Round 249）：
+    #    此前只要 5 分钟内有过思考就跳过，导致"判定变化"也被拦截。
+    #    现在：只有当上一条也是**同级或更高级别**时才跳过。
+    #    如果上一条是 ok 而本次是 warn ⇒ 判定升级，必须记录。
     if _a is not None and _a <= _CHECK_WINDOW_MIN:
-        _src = "规则" if _t.get("degraded") else "模型"
-        print(f"  · 本轮已有{_src}思考（{_a:.1f} 分钟前），跳过")
-        sys.exit(0)
+        _prev_sev = _t.get("severity") or "unknown"
+        _SEV_ORDER = {"ok": 0, "info": 1, "warn": 2, "high": 2, "critical": 3}
+        _prev_rank = _SEV_ORDER.get(_prev_sev, -1)
+        # 需要先用相同逻辑算出本次预估级别？此处无法预知。
+        # 简化：只有当上一条是 warn/high/critical 时才跳过（避免重复警告）
+        #       上一条是 ok/info 时允许继续（可能有新问题）
+        if _prev_rank >= 2:
+            _src = "规则" if _t.get("degraded") else "模型"
+            print(f"  · 本轮已有{_src}警告（{_a:.1f} 分钟前，{_prev_sev}），跳过重复告警")
+            sys.exit(0)
+        # 上一条是 ok/info ⇒ 允许继续判断，由后面的增量门槛决定
 
 # --- 收集事实 ---
 facts = []
@@ -122,6 +132,26 @@ try:
             facts.append(("offsite_age", a, f"站外种子 {a:.0f} 分钟前"))
 except Exception:
     pass
+
+# ⚠️ 信息增量门槛（Round 249）：
+#    实测发现规则思考在重复同一句话，只是数字变化（"写下9条决策"→"写下7条"）。
+#    那不是思考，是报表。没有信息增量的思考不应该被记录。
+#    只有当以下任一条件满足时才产出：
+#      1. 判定类别变化（severity 级别变了）
+#      2. 距上次思考超过 3 小时（状态可能已变）
+#      3. 有新的 warning（之前是 ok/info，现在有 warn）
+_last_severity = None
+_last_thought_age = None
+if thoughts:
+    _lt = thoughts[-1]
+    _last_severity = _lt.get("severity")
+    try:
+        import datetime as _dt2
+        _tt2 = _dt2.datetime.strptime(_lt.get("ts", ""), "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=_dt2.timezone.utc)
+        _last_thought_age = (now - _tt2).total_seconds() / 60
+    except Exception:
+        pass
 
 # --- 用规则提炼判断（优先级从高到低）---
 thought = None
@@ -216,6 +246,29 @@ elif facts:
 if not thought:
     print("  无足够数据形成判断，跳过")
     sys.exit(0)
+
+# ⚠️ 信息增量门槛：判断是否有必要记录这次思考
+_has_increment = False
+_reason = ""
+
+# 条件1：severity 级别变化
+if _last_severity != severity:
+    _has_increment = True
+    _reason = f"判定变化 {_last_severity} → {severity}"
+# 条件2：距上次思考超过 3 小时
+elif _last_thought_age is not None and _last_thought_age > 180:
+    _has_increment = True
+    _reason = f"距上次思考 {_last_thought_age:.0f} 分钟"
+# 条件3：现在有 warn 而上次不是
+elif severity == "warn" and _last_severity not in ("warn", "critical"):
+    _has_increment = True
+    _reason = "新出现的问题"
+
+if not _has_increment:
+    print(f"  · 无信息增量（上次 {_last_severity}，本次 {severity}），跳过记录")
+    sys.exit(0)
+
+print(f"  · 有信息增量：{_reason}")
 
 rec = {
     "ts": ts,
