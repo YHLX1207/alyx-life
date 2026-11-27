@@ -12033,3 +12033,74 @@ ok = proc.returncode == 0        # 永远为 0
 但忘了**记录失败也要真实**。失败不阻断 ≠ 失败要伪装成成功。
 
 **降级可以接受，但降级必须被看见。**
+
+## D250 · paste.rs 已失效：站外备份迁移到 dpaste + GitHub Gist（2026-11-27，Round 252）
+
+### 上轮的遗留
+D249 修复了"行动误报成功"，但**没有解决 paste.rs 上传失败本身**。
+这轮追查根因。
+
+### 诊断结果
+```
+GET  https://paste.rs           → HTTP 200  ← 站点活着
+POST https://paste.rs (上传)    → HTTP 400 Bad Request  ← 上传失效
+GET  https://paste.rs/Jaciz     → HTTP 200  ← 历史 URL 仍可读
+```
+
+**paste.rs 已转为只读服务：站点在、历史内容可访问、但不再接受新上传。**
+
+试过的变体全部返回 400：
+- `--data-binary`
+- `-d`
+- `-H "Content-Type: text/plain"`
+- `-F` 表单上传
+
+**说明是服务端策略变更，不是我们的请求格式问题。**
+
+### 替代方案测试
+| 服务 | 状态 |
+|---|---|
+| 0x0.st | ✗ `uploads disabled because it's been almost...` |
+| hastebin.com | ✗ `Unauthorized request: missing API key` |
+| paste.ee | ✗ 不可达 |
+| **dpaste.org** | **✓ 匿名上传成功，返回 URL** |
+| **GitHub Gist** | **✓ 用已有 token 创建成功** |
+
+### 实现：多服务回退链
+```bash
+upload_seg() {
+  主：dpaste.org（匿名，返回 URL）
+  备：GitHub Gist（私有，需 token）
+  各重试 3 次，指数退避
+}
+```
+
+**同时修复了三个配套问题：**
+1. URL 校验从 `paste.rs/*` 扩展为 `paste.rs|dpaste.org|gist.github.com`
+2. Gist 跳过通用回读比对（HTML 页面不是原始内容）
+3. 种子主文件的回读改为**通过 Gist API 读回文件内容**再比 md5
+
+### 验证
+```
+站外种子: ✓ 已更新
+  url: https://gist.github.com/YHLX1207/15098591979544e3e42b31573e7...
+  md5 校验通过（API 回读）
+
+决策史 10 段: 全部 ✓ 上传到 Gist
+```
+
+### 意义
+**站外备份通道从"单点依赖 paste.rs"变成"多通道回退"。**
+
+此前 paste.rs 一挂，整条站外备份链就断了。
+现在有 dpaste + Gist 两条独立通道。
+
+### 教训
+**依赖外部免费服务，必须假设它随时会消失。**
+
+paste.rs 用了几个月都正常，但它可以在某一天悄悄变成只读。
+**冗余不是"多写几份到同一个地方"，而是"多个独立通道"。**
+
+### 遗留
+- Gist 数量会累积（每次上传新建一个），需要定期清理策略
+- 旧 paste.rs URL 仍可读，历史备份仍有效
