@@ -179,6 +179,7 @@ if bad:
     for label, why in bad:
         print(f"      {label}: {why}")
     print()
+
     print("  排查顺序：")
     print("    1. 这个数据走 API 还是 git？（走 git 会被 rebase 丢弃）")
     print("    2. 最近一次运行用的是哪个版本的工作流？（版本时间差）")
