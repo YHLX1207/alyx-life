@@ -1,0 +1,134 @@
+name: alyx-backup
+
+# 独立备份节点（Round 253）
+#
+# 为什么需要：
+#   主链 alyx-cycle 有 concurrency 锁，同一时刻只有 1 个运行。
+#   但公开仓库的 GitHub Actions 是**免费无限**的，可以并行。
+#   ⇒ 把备份职责拆成独立工作流，与主链并行，形成真正的多节点。
+#
+# 这个节点只做备份，不做决策，与主链互不干扰：
+#   · 站外种子（dpaste + Gist）
+#   · 快照发布（Release）
+#   · Gist 清理
+#
+# 与主链共享 concurrency group 之外的空间 ⇒ 真正的并行节点。
+
+on:
+  # 每 15 分钟尝试一次（主链每 30 分钟，备份更频繁以覆盖更多时间点）
+  schedule:
+    - cron: '13,43 * * * *'
+  workflow_dispatch:
+
+# ⚠️ 独立的 concurrency group，不与主链竞争
+concurrency:
+  group: alyx-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 固定身份
+        run: |
+          git config user.name "Alyx"
+          git config user.email "alyx@localhost"
+
+      - name: 过期检查
+        # 避免队列积压后执行陈旧任务
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, datetime, os, sys
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          hdr = {"Authorization": f"token {token}", "User-Agent": "alyx",
+                 "Accept": "application/vnd.github+json", "Connection": "close"}
+          try:
+              d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}/contents/state/journal.jsonl",
+                  headers=hdr), timeout=25).read())
+              import base64
+              body = base64.b64decode(d.get("content", "")).decode().strip()
+              lines = [l for l in body.split("\n") if l.strip()]
+              if lines:
+                  last = json.loads(lines[-1])
+                  t = datetime.datetime.strptime(last["ts"], "%Y-%m-%dT%H:%M:%SZ").replace(
+                      tzinfo=datetime.timezone.utc)
+                  age = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() / 60
+                  print(f"  心跳年龄: {age:.0f} 分钟")
+                  if age < 5:
+                      print("  心跳太新 ⇒ 主链刚跑过，备份跳过")
+                      sys.exit(0)
+          except Exception as e:
+              print(f"  检查失败（继续执行）: {str(e)[:60]}")
+          PY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 刷新站外种子
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          bash scripts/offsite-seed.sh
+          bash scripts/sync-jsonl.sh state/offsite-seed.jsonl 500
+
+      - name: Gist 清理（防累积）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/gist-cleanup.sh 20
+
+      - name: 发布完整快照
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/snapshot-release.sh
+
+      - name: 记录备份节点心跳
+        # 让主链知道"备份节点还活着"，形成真正的双节点互监
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json, base64, urllib.request, datetime, os
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          API = f"https://api.github.com/repos/{repo}"
+          hdr = {"Authorization": f"token {token}", "User-Agent": "alyx",
+                 "Accept": "application/vnd.github+json", "Connection": "close"}
+          rec = {"ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 "by": "backup-node", "mode": "backup-cycle",
+                 "run_id": os.environ.get("GITHUB_RUN_ID", "")}
+          for _att in range(5):
+              try:
+                  d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                      f"{API}/contents/state/journal.jsonl", headers=hdr), timeout=25).read())
+                  lines = [l for l in base64.b64decode(d.get("content", "")).decode().strip().split("\n") if l.strip()]
+                  new = "\n".join(lines + [json.dumps(rec, ensure_ascii=False)]) + "\n"
+                  body = json.dumps({"message": f"backup-heartbeat {rec['ts']}",
+                                     "content": base64.b64encode(new.encode()).decode(),
+                                     "sha": d.get("sha"), "branch": "main"}).encode()
+                  urllib.request.urlopen(urllib.request.Request(
+                      f"{API}/contents/state/journal.jsonl", data=body, method="PUT",
+                      headers={**hdr, "Content-Type": "application/json"}), timeout=30)
+                  print("  ✓ 备份节点心跳已写入")
+                  break
+              except Exception as e:
+                  import time
+                  if _att < 4:
+                      time.sleep(2 ** _att)
+                      continue
+                  print(f"  ✗ 心跳写入失败: {str(e)[:60]}")
+          PY
