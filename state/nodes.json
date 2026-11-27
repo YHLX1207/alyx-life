@@ -3,8 +3,8 @@
   "id": "actions",
   "did": null,
   "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-27T22:15:40Z",
-  "beats": 103,
+  "last_seen": "2026-11-27T22:46:53Z",
+  "beats": 104,
   "kind": "actions",
   "caps": [
    "bootstrap",
@@ -50,10 +50,10 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 0.4
+  "age_hours": 0.92
  },
  "_summary": {
-  "ts": "2026-11-27T22:15:40Z",
+  "ts": "2026-11-27T22:46:53Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions",
