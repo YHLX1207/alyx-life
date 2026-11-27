@@ -297,6 +297,7 @@ jobs:
         #    CI 环境无网关 ⇒ 脚本会自动跳过（不报错）。
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
         continue-on-error: true
         run: |
           # ⚠️ 两级思考（Round 222）：
