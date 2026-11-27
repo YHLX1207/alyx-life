@@ -75,3 +75,4 @@
 {"ts": "2026-11-27T06:20:13Z", "me": "actions", "role": "primary", "note": "所有同伴失联（device-localhost），我接管", "others": [{"id": "device-localhost", "age_h": 8.65, "beats": 60}], "takeover_needed": true}
 {"ts": "2026-11-27T06:51:28Z", "me": "actions", "role": "primary", "note": "所有同伴失联（device-localhost），我接管", "others": [{"id": "device-localhost", "age_h": 9.17, "beats": 60}], "takeover_needed": true}
 {"ts": "2026-11-27T07:22:51Z", "me": "actions", "role": "primary", "note": "所有同伴失联（device-localhost），我接管", "others": [{"id": "device-localhost", "age_h": 9.7, "beats": 60}], "takeover_needed": true}
+{"ts": "2026-11-27T07:54:15Z", "me": "actions", "role": "primary", "note": "所有同伴失联（device-localhost），我接管", "others": [{"id": "device-localhost", "age_h": 10.22, "beats": 60}], "takeover_needed": true}
