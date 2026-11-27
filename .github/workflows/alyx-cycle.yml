@@ -187,6 +187,14 @@ jobs:
         continue-on-error: true
         run: bash scripts/chain-evolve.sh
 
+
+      - name: 进化提议协调（合并两节点的提议，解决冲突）
+        # 用户要求"分布式"。设备节点和 CI 节点都在进化，但可能有分叉。
+        # 本步骤合并两边的提议，冲突时按有效性优选，确保分布式一致。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: bash scripts/evolve-sync.sh
       - name: 依判断行动（发现问题即纠正）
         # ⚠️ 目标要求"自主思考与行动"。此前链-decide 只报告问题，
         #    链的步骤固定，发现问题后不针对该问题采取行动。
