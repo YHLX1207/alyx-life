@@ -60,3 +60,4 @@
 {"ts": "2026-11-26T22:29:54Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.81, "beats": 60}], "takeover_needed": false}
 {"ts": "2026-11-26T23:01:37Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.34, "beats": 60}], "takeover_needed": false}
 {"ts": "2026-11-26T23:33:16Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.87, "beats": 60}], "takeover_needed": false}
+{"ts": "2026-11-27T00:04:56Z", "me": "actions", "role": "unknown", "note": "无法判定", "others": [{"id": "device-localhost", "age_h": 2.4, "beats": 60}], "takeover_needed": false}
