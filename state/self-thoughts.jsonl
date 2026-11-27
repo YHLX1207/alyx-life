@@ -32,3 +32,5 @@
 {"ts": "2026-11-27T15:21:06Z", "model": "codearts/GLM-5.2", "thought": "D204 提到站外链上传无重试，这可能就是种子陈旧的根因，我该确认这个修复是否已落地。", "material_len": 1049}
 {"ts": "2026-11-27T15:46:47Z", "model": "openai", "thought": "我该确认站外链上传失败是否会让 CI 静默落后，并核实重试修复有没有落地。", "material_len": 1062}
 {"ts": "2026-11-27T15:46:52Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 5 次，写下了 2 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 2}, {"k": "thought_age", "v": 0.09640221666666667}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 154.37973555}]}
+{"ts": "2026-11-27T16:17:56Z", "model": "openai", "thought": "我还没有确认站外链上传的重试修复是否落地；这是眼下最需要补上的验证。", "material_len": 1055}
+{"ts": "2026-11-27T16:18:02Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 6 次，写下了 2 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 6}, {"k": "decision_delta", "v": 2}, {"k": "thought_age", "v": 0.10938731666666666}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 185.54272064999998}]}
