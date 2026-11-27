@@ -92,3 +92,4 @@
 {"ts": "2026-11-27T15:15:29Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.41, "beats": 93}], "takeover_needed": false}
 {"ts": "2026-11-27T15:46:40Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.43, "beats": 94}], "takeover_needed": false}
 {"ts": "2026-11-27T16:17:50Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.45, "beats": 95}], "takeover_needed": false}
+{"ts": "2026-11-27T16:49:54Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.48, "beats": 96}], "takeover_needed": false}
