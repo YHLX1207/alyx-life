@@ -228,10 +228,11 @@ print(d.get('adb',0), d.get('shz',0))
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 120 bash ./model-health.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
-  # 思考（Round 224）：设备节点有网关，能做模型级思考。
-  # 每 40 轮（约 2-3 小时）想一次，产出写入 self-thoughts.jsonl。
-  # 与 CI 的降级思考互补：两边产出的思考会互相可见。
-  if [ $(( n % 40 )) -eq 0 ]; then
+  # 思考（Round 250 重构）：设备节点有网关，是**模型思考的主力**。
+  # ⚠️ 此前每 40 轮（2-3 小时）才想一次，而 CI 每 30 分钟规则思考一次，
+  #    导致规则思考淹没模型思考（35 vs 3）。
+  #    现改为每 10 轮（约 30 分钟），让模型思考成为主要产出。
+  if [ $(( n % 10 )) -eq 0 ]; then
     ( timeout 300 bash -c "
       ./chain-think.sh || true
       ./sync-jsonl.sh state/self-thoughts.jsonl 200
