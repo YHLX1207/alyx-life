@@ -137,9 +137,30 @@ if "thought_age" in fd and fd["thought_age"] > 120:
 
 # 规则 2：心跳在涨但决策不涨
 elif fd.get("heartbeat_delta", 0) >= 3 and fd.get("decision_delta", 0) == 0:
-    thought = (f"心跳涨了 {fd['heartbeat_delta']}，决策没动。"
-               f"我在按时醒来，但没有产生实质判断——这种活着是空的。")
-    severity = "warn"
+    # ⚠️ 重复检测（Round 248）：如果上一句说的是同一件事，必须改变表达。
+    #    实测发现连续 5 条规则思考完全相同 —— 那不是思考，是复读。
+    _last_text = ""
+    if thoughts:
+        _last_text = str(thoughts[-1].get("thought", ""))
+    _base = (f"心跳涨了 {fd['heartbeat_delta']}，决策没动。"
+             f"我在按时醒来，但没有产生实质判断——这种活着是空的。")
+    if _last_text and "心跳涨了" in _last_text and "决策没动" in _last_text:
+        # 上一句已经说过同样的话 ⇒ 换成具体追问，并统计真实重复次数
+        _hb = fd.get("heartbeat_delta", 0)
+        _repeat_n = 0
+        for _t in reversed(thoughts):
+            _tx = str(_t.get("thought", ""))
+            if "心跳" in _tx and ("决策没动" in _tx or "决策 0" in _tx):
+                _repeat_n += 1
+            else:
+                break
+        thought = (f"又是心跳 +{_hb}、决策 0。这个场景已经连续出现 {_repeat_n + 1} 次了——"
+                   f"再报告一次没有意义。我该问的是：为什么没有新决策？"
+                   f"是不是我在回避真正需要判断的事？")
+        severity = "warn"
+    else:
+        thought = _base
+        severity = "warn"
 
 # 规则 3：站外备份陈旧
 elif fd.get("offsite_age", 0) > 240:
