@@ -297,3 +297,11 @@ else:
 open(p,'w',encoding='utf-8').write(s)
 PY
 fi
+
+# ⚠️ 自动清理旧 Gist（Round 253）：
+#    每次上传新建 Gist ⇒ 会无限累积（实测已达 17 个）。
+#    每次上传后自动保留最近 20 个，删除更早的。
+#    放在后台执行，不阻塞主流程。
+if [ -n "${GH_TOKEN:-}" ] && [ -x ./gist-cleanup.sh ]; then
+  ( timeout 120 ./gist-cleanup.sh 20 >/dev/null 2>&1 || true ) &
+fi
