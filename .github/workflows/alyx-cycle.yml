@@ -83,22 +83,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: |
-            # 失败必须被记录（与 D249 同类）：continue-on-error 会把失败显示成 success
-            set +e
-            bash scripts/offsite-seed.sh
-            _rc=$?
-            if [ "$_rc" -ne 0 ]; then
-              echo "  ⚠ 站外种子刷新失败（rc=$_rc），已记录告警"
-              SEED_RC="$_rc" python3 - <<'PYWARN'
-import json, os, datetime
-rec = {"ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-       "step": "offsite-seed", "rc": os.environ.get("SEED_RC", "?")}
-os.makedirs("state", exist_ok=True)
-with open("state/seed-alerts.jsonl", "a", encoding="utf-8") as f:
-    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-PYWARN
-            fi
-            bash scripts/sync-jsonl.sh state/offsite-seed.jsonl 500 || echo "  · 同步失败（网络）"
+          bash scripts/offsite-seed.sh
+          bash scripts/sync-jsonl.sh state/offsite-seed.jsonl 500
 
       - name: 刷新自述（给"下一个我"的最新材料）
       # ⚠️ export-self 曾既不在守护、也不在工作流里，
