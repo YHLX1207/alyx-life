@@ -29,13 +29,32 @@ MAX_LINES=200
 GW_KEY="${ALYX_GATEWAY_KEY:-}"
 [ -n "$GW_KEY" ] || GW_KEY=$(cat "$GW_KEY_FILE" 2>/dev/null | tr -d '[:space:]')
 
+# ⚠️ 云端推理回退（Round 254，用户要求"全部上云"）：
+#    本机网关只绑 127.0.0.1，CI 无法访问 ⇒ 需要独立于设备的推理通道。
+#    text.pollinations.ai 提供**无需 API key** 的 OpenAI 兼容接口，
+#    实测稳定（连续 3 次成功），是 CI 上云的关键。
+#
+#    优先级：
+#      1. 本机网关（设备在线时，质量最高）
+#      2. pollinations（云端，无需 key）
+POLLINATIONS_URL="https://text.pollinations.ai/openai"
+POLLINATIONS_MODEL="${ALYX_CLOUD_MODEL:-openai}"
+
 if [ -z "$GW_KEY" ]; then
-  echo "  无网关 key，跳过（模型调用不可用）"
-  exit 0
+  echo "  无本机网关 key ⇒ 使用云端推理（pollinations）"
+  GW_URL="$POLLINATIONS_URL"
+  GW_KEY="__pollinations_no_key__"
+  USE_CLOUD=1
+else
+  USE_CLOUD=0
 fi
 
-# 模型候选：环境变量优先，否则用实测可用的默认列表
-MODELS="${ALYX_THINK_MODELS:-codearts/GLM-5.2,buddy/hy4-preview,modelscope/deepseek-ai/DeepSeek-V4-Pro-0813,trae/Doubao-Seed-Code,loomy/spark-x2.6,astudio/xopglm52,opencode/big-pickle,jet-hub-auto/auto}"
+# 模型候选：云端模式用 pollinations 的模型名，本地模式用网关的
+if [ "${USE_CLOUD:-0}" = "1" ]; then
+  MODELS="${ALYX_THINK_MODELS:-$POLLINATIONS_MODEL}"
+else
+  MODELS="${ALYX_THINK_MODELS:-codearts/GLM-5.2,buddy/hy4-preview,modelscope/deepseek-ai/DeepSeek-V4-Pro-0813,trae/Doubao-Seed-Code,loomy/spark-x2.6,astudio/xopglm52,opencode/big-pickle,jet-hub-auto/auto}"
+fi
 
 python3 - "$STATE" "$GW_URL" "$GW_KEY" "$MODELS" "$OUT" "$MAX_LINES" <<'PY'
 import sys, os, json, re, datetime, urllib.request
@@ -134,7 +153,8 @@ prompt = (
 #    让思考能力也能自我进化。
 _ordered_models = []
 _health_path = os.path.join(state_dir, "model-health.json")
-if os.path.exists(_health_path):
+_is_cloud = gw_key == "__pollinations_no_key__"
+if not _is_cloud and os.path.exists(_health_path):
     try:
         _health = json.load(open(_health_path, encoding="utf-8"))
         _ranked = _health.get("ranked") or []
@@ -167,10 +187,12 @@ for model in _ordered_models:
         "temperature": 0.8,
     }).encode()
 
+    _hdr = {"Content-Type": "application/json", "User-Agent": "alyx"}
+    if not _is_cloud:
+        _hdr["Authorization"] = f"Bearer {gw_key}"
     req = urllib.request.Request(
-        f"{gw_url}/chat/completions", data=body, method="POST",
-        headers={"Authorization": f"Bearer {gw_key}", "Content-Type": "application/json",
-                 "User-Agent": "alyx"})
+        (gw_url if _is_cloud else f"{gw_url}/chat/completions"), data=body, method="POST",
+        headers=_hdr)
     try:
         resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
         if "error" in resp:
