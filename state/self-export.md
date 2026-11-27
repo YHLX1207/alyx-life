@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-27T16:49:52Z
+导出时间：2026-11-27T17:21:03Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,9 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 257 条）
+## 四、决策与教训（最近 20 条 / 共 258 条）
 
-- **D237 · 进化管线自检：防止自我进化链路静默失效（2026-11-26，Round 240）** → 动机
 - **D238 · 进化状态摘要：让系统能感知自己的进化程度（2026-11-26，Round 241）** → 动机
 - **D239 · 人格一致性检查：确保系统的自我认知连贯（2026-11-26，Round 242）** → 动机
 - **D240 · 自我评估：合成一份完整的自我画像（2026-11-26，Round 243）** → 动机
@@ -101,6 +100,7 @@ cd /root/projects/life
 - **D254 · 脱离本地验证：云端备份节点首次运行成功（2026-11-27，Round 254）** → 验证目标
 - **D255 · 站外种子记录不同步：产物检查读到旧值（2026-11-27，Round 254）** → 现象
 - **D256 · 模型替我发现了漏掉的缺陷：D204 的修复没有真正落地（2026-11-27，Round 255）** → 模型的反复提醒
+- **D257 · 我的修复造成了新故障：回滚到稳定版本（2026-11-27，最后一轮）** → 发生了什么
 
 ## 五、已知失败模式（摘要）
 
@@ -182,7 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://gist.github.com/YHLX1207/6946255f5c51b961864df9bec3e446b3
+> 种子：https://gist.github.com/YHLX1207/f92baa0408be83c51234b26d3aaaec5d
+> 代码包（分段）：https://gist.github.com/YHLX1207/76bd9240d94dd0cd32e02e7cbca5e71b,https://gist.github.com/YHLX1207/b56358284e05b2708a10f19e59d914e5
+> 决策史（分段）：https://gist.github.com/YHLX1207/1a21042e109eda4907008f8f839389c9,https://gist.github.com/YHLX1207/517d13e5c41db14c3640060cee2abcd7,https://gist.github.com/YHLX1207/d8681783af5ee985765a0281490d9143,https://gist.github.com/YHLX1207/f5274e62f0d5eb9e4af1db44ca1c723b,https://gist.github.com/YHLX1207/029d46eaddd743d3a3b23664d8da0636,https://gist.github.com/YHLX1207/234afe26e4d9180326c887fcc470005c,https://gist.github.com/YHLX1207/d5ba20a0f807932eee804a70f0fceea9,https://gist.github.com/YHLX1207/2aaf9135e455f495310d4c9cd7896816,https://gist.github.com/YHLX1207/3d1218843962c27399924f9a6014271d,https://gist.github.com/YHLX1207/add690e4a9e9315d144dd38d2361b488
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
