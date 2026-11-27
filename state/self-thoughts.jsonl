@@ -44,3 +44,5 @@
 {"ts": "2026-11-27T17:52:28Z", "model": "openai", "thought": "我最该追踪的是 D204 的站外链修复是否真正落地；机器报 ok 仍不足以证明它已解决。", "material_len": 1062}
 {"ts": "2026-11-27T17:52:37Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 5 次，写下了 4 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 4}, {"k": "thought_age", "v": 0.15641336666666666}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 77.57308003333333}]}
 {"ts": "2026-11-27T18:21:24Z", "model": "codearts/GLM-5.2", "thought": "第五次了：D204 站外链修复仍无落地证据，我没有新发现，和上次一样，还在原地等确认。", "material_len": 1062}
+{"ts": "2026-11-27T18:23:43Z", "model": "openai", "thought": "我最该确认的是 D204 的重试修复是否已落地；目前仍没有新证据，我还在等验证。", "material_len": 1066}
+{"ts": "2026-11-27T18:23:48Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 5 次，写下了 4 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 4}, {"k": "thought_age", "v": 0.08698378333333333}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 2.270317116666667}]}
