@@ -115,6 +115,7 @@
 | `adaptive-watchdog.sh` | 自适应守护（唯一实现） | 改设备 |
 | `daemon.sh` | 启动入口（委托 daemon-ctl） | 启进程 |
 | `daemon-ctl.sh` | 守护控制（含 PID 复用防护） | 启停进程 |
+| `self-supervise.sh` | **守护的自守护**（单例锁 + 崩溃重启）| 无 |
 
 ## 记忆
 
