@@ -1,0 +1,49 @@
+name: dpaste-test
+
+# 最小验证：在 CI 环境测试 dpaste 上传是否可用
+# 目的：隔离掉所有其它逻辑，只看 dpaste 在 GitHub Actions 里能否成功。
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 测试 dpaste 上传
+        run: |
+          echo "=== 环境信息 ==="
+          curl --version | head -1
+          echo ""
+
+          echo "=== 测试 1: 简单内容 ==="
+          echo "hello-from-ci-$(date +%s)" > /tmp/t1.txt
+          R1=$(curl -s --max-time 60 -X POST -F "content=</tmp/t1.txt" -F "format=url" https://dpaste.org/api/ 2>&1)
+          echo "响应: '${R1}'"
+          case "$R1" in
+            https://dpaste.org/*) echo "✓ 测试1 成功" ;;
+            *) echo "✗ 测试1 失败" ;;
+          esac
+          echo ""
+
+          echo "=== 测试 2: base64 内容（模拟真实场景）==="
+          head -c 20000 /dev/urandom | base64 > /tmp/t2.b64
+          SZ=$(wc -c < /tmp/t2.b64)
+          echo "文件大小: $SZ 字节"
+          R2=$(curl -s --max-time 120 -X POST -F "content=</tmp/t2.b64" -F "format=url" https://dpaste.org/api/ 2>&1)
+          echo "响应: '${R2}'"
+          case "$R2" in
+            https://dpaste.org/*)
+              echo "✓ 测试2 成功"
+              echo "=== 测试 3: raw 回读 ==="
+              sleep 5
+              R3=$(curl -s --max-time 60 "${R2}/raw" 2>&1 | head -c 50)
+              echo "raw 前50字符: $R3"
+              ;;
+            *) echo "✗ 测试2 失败" ;;
+          esac
+          echo ""
+
+          echo "=== 测试 4: 连通性 ==="
+          curl -s -o /dev/null -w "dpaste.org HTTP %{http_code} 耗时 %{time_total}s\n" --max-time 30 https://dpaste.org
