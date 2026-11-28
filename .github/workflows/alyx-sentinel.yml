@@ -93,7 +93,7 @@ jobs:
                 f.write(f"alive={'true' if alive else 'false'}\n")
                 f.write(f"reason={reason}\n")
                 f.write(f"age={age_min if age_min is not None else -1}\n")
-            PY
+PY
 
       - name: 记录哨兵心跳（只写本仓库）
         env:
@@ -137,7 +137,7 @@ jobs:
                 f"{API}/contents/state/sentinel.jsonl", data=json.dumps(payload).encode(),
                 method="PUT", headers=hdr), timeout=30)
             print("  ✓ 哨兵心跳已记录")
-            PY
+PY
 
       - name: 主仓库死亡时报警
         if: steps.check.outputs.alive == 'false'
