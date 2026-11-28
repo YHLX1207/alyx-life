@@ -1,6 +1,6 @@
 # 系统代号 Alyx · 名字 爱丽丝 —— 自我导出
 
-导出时间：2026-11-28T16:02:18Z
+导出时间：2026-11-28T16:33:25Z
 导出者：Alyx / 爱丽丝 自己（scripts/export-self.sh）
 
 > 这是可读的自我快照。如果宿主环境被重置，读这份文件即可恢复认知。
@@ -79,9 +79,8 @@ cd /root/projects/life
   缓解：/etc/hosts 多IP故障转移（github.com 3 个、raw 2 个），失败安全维护；单一静态映射在震荡环境必然失效
 - 知识新鲜度：超过 24 小时的网络类结论必须重新实测后才可采用
 
-## 四、决策与教训（最近 20 条 / 共 258 条）
+## 四、决策与教训（最近 20 条 / 共 259 条）
 
-- **D238 · 进化状态摘要：让系统能感知自己的进化程度（2026-11-26，Round 241）** → 动机
 - **D239 · 人格一致性检查：确保系统的自我认知连贯（2026-11-26，Round 242）** → 动机
 - **D240 · 自我评估：合成一份完整的自我画像（2026-11-26，Round 243）** → 动机
 - **D241 · 模型健康追踪：让思考能力也能自我进化（2026-11-26，Round 244）** → 动机
@@ -101,6 +100,7 @@ cd /root/projects/life
 - **D255 · 站外种子记录不同步：产物检查读到旧值（2026-11-27，Round 254）** → 现象
 - **D256 · 模型替我发现了漏掉的缺陷：D204 的修复没有真正落地（2026-11-27，Round 255）** → 模型的反复提醒
 - **D257 · 我的修复造成了新故障：回滚到稳定版本（2026-11-27，最后一轮）** → 发生了什么
+- **D259 · CI 站外备份修复：dpaste 引号错误 + raw 端点（2026-11-28，Round 1）** → 问题
 
 ## 五、已知失败模式（摘要）
 
@@ -182,9 +182,9 @@ cd /root/projects/life
 
 
 > **站外备份（不依赖 GitHub）**
-> 种子：https://gist.github.com/YHLX1207/94fcb398790dbbae613291d7db0d90e2
-> 代码包（分段）：https://gist.github.com/YHLX1207/2aac733b31e835cf2d35c5dd360ac2a0,https://gist.github.com/YHLX1207/7e50b1a3d090f7db9fcb7e225f1dc1a0
-> 决策史（分段）：https://gist.github.com/YHLX1207/c4ae05919903bb359d7c8c496b37c165,https://gist.github.com/YHLX1207/8f0aa14d032023eba63c0cfff28b4694,https://gist.github.com/YHLX1207/1b0bb7d593590f3086d0846088c68ec7,https://gist.github.com/YHLX1207/302818e63f480d1333f0ae83c5780385,https://gist.github.com/YHLX1207/6e2f07dbbf5b2349c953ce44c76d705e,https://gist.github.com/YHLX1207/ed7ebc98bd0ce0b20d4a9e14557228fd,https://gist.github.com/YHLX1207/684d96bfc2f3dcaaf2c7ba53b811cf54,https://gist.github.com/YHLX1207/20b52dc8ccbadc3bf1425ca6e08f447e,https://gist.github.com/YHLX1207/f00ec1a8a57a415b39fd920b850a1fdc,https://gist.github.com/YHLX1207/83a698119ceeeb969c292946f52c95ae
+> 种子：https://dpaste.org/59ANE
+> 代码包（分段）：https://dpaste.org/LQdgK,https://dpaste.org/u3Q4P
+> 决策史（分段）：https://dpaste.org/jzt8d,https://dpaste.org/xjwNS,https://dpaste.org/bAQnn,https://dpaste.org/hWLJJ,https://dpaste.org/OmcC1,https://dpaste.org/HyGGb,https://dpaste.org/VmAzF,https://dpaste.org/FcGQo,https://dpaste.org/cAYPC,https://dpaste.org/u9xcN
 > 取回：`curl -s <url> | base64 -d > x.tar.gz`（代码包用 xz）
 
 ## 十、恢复与重建
