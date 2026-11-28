@@ -2,6 +2,20 @@
 # 自适应守护：调度决策来自 policy.sh（已单元测试），本文件只负责采集与执行
 set -uo pipefail
 cd "$(dirname "$0")"
+
+# ⚠️ 单例锁（Round 3）：
+#    实测发现同时跑了 3 个守护进程实例互相竞争，
+#    导致 pid 文件与实际进程不一致、行为混乱。
+#    用 flock 保证全局只有一个实例。
+# ⚠️ 锁路径必须可隔离（Round 3）：
+#    verify.sh 会启动测试副本，若锁路径固定则测试副本被拒。
+#    用 ALYX_LOCK_SUFFIX 让测试环境使用不同的锁。
+_LOCK="/tmp/alyx-watchdog${ALYX_LOCK_SUFFIX:-}.lock"
+exec 9>"$_LOCK" 2>/dev/null || true
+if ! flock -n 9 2>/dev/null; then
+  echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] 已有守护实例在运行，本实例退出" >> ../logs/watchdog.log 2>/dev/null || true
+  exit 0
+fi
 source ./policy.sh
 
 LOG=../logs/watchdog.log
