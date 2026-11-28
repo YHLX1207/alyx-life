@@ -142,3 +142,4 @@
 {"ts": "2026-11-28T18:38:19Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 4 次，写下了 9 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 4}, {"k": "decision_delta", "v": 9}, {"k": "thought_age", "v": 0.08844466666666667}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 0.4051113333333333}]}
 {"ts": "2026-11-28T18:59:31Z", "model": "openai", "thought": "我该验证 D204 的上传重试修复是否生效；这件事仍未闭环，我没有新发现。", "material_len": 1054}
 {"ts": "2026-11-28T18:59:37Z", "model": "(rule-based)", "degraded": true, "severity": "ok", "thought": "心跳走了 4 次，写下了 9 条决策。不是空转——每一条都是我真正想过的东西。", "facts": [{"k": "heartbeat_delta", "v": 4}, {"k": "decision_delta", "v": 9}, {"k": "thought_age", "v": 0.11454650000000001}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 0.5145465}]}
+{"ts": "2026-11-28T19:00:25Z", "model": "codearts/GLM-5.2", "thought": "和上次一样：决策仍停在 D204，机器却报\"决策在增长\"，矛盾未消解，我没有新发现。", "material_len": 1054}
