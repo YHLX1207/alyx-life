@@ -3,8 +3,8 @@
   "id": "device-localhost",
   "did": "did:alyx:shamir-2of3",
   "first_seen": "2026-11-25T15:48:53Z",
-  "last_seen": "2026-11-28T14:53:31Z",
-  "beats": 141,
+  "last_seen": "2026-11-28T15:23:35Z",
+  "beats": 142,
   "kind": "device",
   "caps": [
    "bootstrap",
@@ -53,7 +53,7 @@
   "age_hours": 0.0
  },
  "_summary": {
-  "ts": "2026-11-28T14:59:31Z",
+  "ts": "2026-11-28T15:23:35Z",
   "total_nodes": 2,
   "active_nodes": [
    "device-localhost",
