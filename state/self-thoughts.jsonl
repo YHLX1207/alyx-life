@@ -125,3 +125,5 @@
 {"ts": "2026-11-28T14:59:49Z", "model": "openai", "thought": "我最该确认站外种子记录陈旧是否已修复；机器判断仍相同，我没有新发现。", "material_len": 1087}
 {"ts": "2026-11-28T14:59:54Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.08599441666666667}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 1057.9526610833334}]}
 {"ts": "2026-11-28T15:23:35Z", "model": "codearts/GLM-5.2", "thought": "上次指出的矛盾仍未消解：机器判断仍说\"决策在增长\"，但决策仍停在 D204，没有新进展。", "material_len": 1048}
+{"ts": "2026-11-28T15:31:13Z", "model": "openai", "thought": "我最该追查站外种子记录为何持续陈旧，机器判断没有变化，我也没有新发现。", "material_len": 1086}
+{"ts": "2026-11-28T15:31:19Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 5，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 5}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.10587663333333334}, {"k": "active_nodes", "v": 2}, {"k": "offsite_age", "v": 1089.3725433}]}
