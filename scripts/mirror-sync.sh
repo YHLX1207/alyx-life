@@ -95,6 +95,20 @@ for name in state_files:
         print(f"    ✗ {name}: {str(e)[:40]}")
 print(f"    ✓ {s_ok} 个状态文件，{s_fail} 个失败")
 
+# ---------- 2.5 同步工作流（关键：没有它镜像无法运行）----------
+print("  同步工作流:")
+wf_ok, wf_fail = 0, 0
+for f in sorted(glob.glob("../.github/workflows/*.yml")):
+    name = os.path.basename(f)
+    try:
+        content = open(f, "rb").read()
+        put_file(f".github/workflows/{name}", content, f"mirror: workflow {name}")
+        wf_ok += 1
+    except Exception as e:
+        wf_fail += 1
+        print(f"    ✗ {name}: {str(e)[:40]}")
+print(f"    ✓ {wf_ok} 个工作流，{wf_fail} 个失败")
+
 # ---------- 3. 写镜像说明 ----------
 readme = f"""# Alyx 灾备镜像
 
@@ -107,16 +121,19 @@ readme = f"""# Alyx 灾备镜像
 
 当主仓库 `YHLX1207/alyx-life` 不可用时，可以从这里恢复：
 
-1. 克隆本仓库
-2. 把 `scripts/` 和 `state/` 复制到新的主仓库
-3. 启用 `.github/workflows/alyx-cycle.yml`
-4. 系统即可继续运行
+**本仓库已包含完整运行所需的一切，可以直接启用 Actions 开始运行。**
+
+步骤：
+1. 在本仓库启用 Actions
+2. 手动触发一次 `alyx-cycle`
+3. 系统即开始自主运行
 
 ## 目录结构
 
 ```
-scripts/   全部运行脚本（可独立执行）
-state/     身份、决策、能力、节点等关键状态
+.github/workflows/   可直接运行的工作流
+scripts/             全部运行脚本（可独立执行）
+state/               身份、决策、能力、节点等关键状态
 ```
 
 ## 恢复步骤
