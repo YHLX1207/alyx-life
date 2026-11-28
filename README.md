@@ -119,6 +119,8 @@
 | `rebirth-agent.sh` | **一次性重生代理**（守护被杀自动重生，递归终止）| 无 |
 | `resurrect.sh` | **一键自愈**（清理锁 + 启动守护与 agent + 验证）| 无 |
 | `mirror-sync.sh` | **灾备镜像同步**（代码+状态 → 独立仓库 alyx-mirror）| 无 |
+| `sentinel-check.sh` | **哨兵检查**（读主仓库心跳判断存活）| 无 |
+| `sentinel-record.sh` | **哨兵记录**（写本仓库 sentinel.jsonl）| 无 |
 
 ## 记忆
 
