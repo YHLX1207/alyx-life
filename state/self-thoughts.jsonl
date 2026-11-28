@@ -119,3 +119,4 @@
 {"ts": "2026-11-28T13:25:35Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 4，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 4}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.0961893}, {"k": "active_nodes", "v": 1}, {"k": "offsite_age", "v": 1144.0628559666666}]}
 {"ts": "2026-11-28T13:56:58Z", "model": "openai", "thought": "我该先核实站外种子记录为何持续陈旧；我上次已关注它，目前仍没有新发现。", "material_len": 1085}
 {"ts": "2026-11-28T13:57:04Z", "model": "(rule-based)", "degraded": true, "severity": "warn", "thought": "心跳涨了 4，决策没动。我在按时醒来，但没有产生实质判断——这种活着是空的。", "facts": [{"k": "heartbeat_delta", "v": 4}, {"k": "decision_delta", "v": 0}, {"k": "thought_age", "v": 0.10228983333333333}, {"k": "active_nodes", "v": 1}, {"k": "offsite_age", "v": 1175.5356231666667}]}
+{"ts": "2026-11-28T14:23:30Z", "model": "codearts/GLM-5.2", "thought": "机器判断说\"决策在增长\"，但实际仍停在 D204——这个矛盾本身比停滞更该查。", "material_len": 1036}
