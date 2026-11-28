@@ -7,15 +7,28 @@ cd "$(dirname "$0")"
 #    实测发现同时跑了 3 个守护进程实例互相竞争，
 #    导致 pid 文件与实际进程不一致、行为混乱。
 #    用 flock 保证全局只有一个实例。
-# ⚠️ 锁路径必须可隔离（Round 3）：
-#    verify.sh 会启动测试副本，若锁路径固定则测试副本被拒。
-#    用 ALYX_LOCK_SUFFIX 让测试环境使用不同的锁。
-_LOCK="/tmp/alyx-watchdog${ALYX_LOCK_SUFFIX:-}.lock"
-exec 9>"$_LOCK" 2>/dev/null || true
-if ! flock -n 9 2>/dev/null; then
-  echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] 已有守护实例在运行，本实例退出" >> ../logs/watchdog.log 2>/dev/null || true
-  exit 0
+# ⚠️ 单例锁（Round 4 重写）：
+#    此前用 `exec 9>lock` + `flock -n 9`，但**锁的 fd 会被子进程继承**。
+#    实测：杀掉守护后，它的 sleep 子进程成为孤儿（ppid=1）却仍持有 fd 9
+#    ⇒ 新守护永远拿不到锁 ⇒ daemon-ctl start 报 FAILED。
+#
+#    修复：从权限文件读 PID 做存活判断（不依赖 fd 继承）。
+#    这是 POSIX 兼容性更好的方案，且没有 fd 泄漏问题。
+_LOCK_DIR="/tmp"
+_PIDLOCK="$_LOCK_DIR/alyx-watchdog${ALYX_LOCK_SUFFIX:-}.pid"
+if [ -f "$_PIDLOCK" ]; then
+  _LIVE_PID=$(cat "$_PIDLOCK" 2>/dev/null | tr -d '[:space:]')
+  if [ -n "$_LIVE_PID" ] && kill -0 "$_LIVE_PID" 2>/dev/null; then
+    # 确认它确实是守护进程（不是复用了 pid 的其它进程）
+    if tr '\0' ' ' < "/proc/$_LIVE_PID/cmdline" 2>/dev/null | grep -q "adaptive-watchdog"; then
+      echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] 已有守护实例在运行（pid=$_LIVE_PID），本实例退出" >> ../logs/watchdog.log 2>/dev/null || true
+      exit 0
+    fi
+  fi
 fi
+echo "$$" > "$_PIDLOCK"
+# 退出时清理 pid 文件（只清理自己的）
+trap '[ "$(cat "$_PIDLOCK" 2>/dev/null | tr -d " ")" = "$$" ] && rm -f "$_PIDLOCK"' EXIT
 source ./policy.sh
 
 LOG=../logs/watchdog.log
