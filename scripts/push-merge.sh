@@ -43,8 +43,16 @@ if not os.path.exists(LOCAL):
     sys.exit(1)
 
 def key_of(line):
+    """去重键：优先用 (ts, kind) 复合键（Round 2 修正）。
+    ⚠️ 此前只用 ts —— 同一时刻的 seed/code/decisions 三条记录会被合并成一条，
+       导致 code 和 decisions 的备份记录丢失（实测本地 73 条只剩 seed 和 release）。"""
     try:
-        return json.loads(line).get("ts") or line
+        r = json.loads(line)
+        ts = r.get("ts") or ""
+        kind = r.get("kind") or "seed"   # seed 记录无 kind 字段，默认 seed
+        if ts:
+            return f"{ts}|{kind}"
+        return line
     except Exception:
         return line
 
