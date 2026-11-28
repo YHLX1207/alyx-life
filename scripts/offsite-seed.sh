@@ -26,7 +26,11 @@ upload_seg() {
   #    ⇒ 改用 dpaste.org 为主，GitHub Gist 为备。
   for _att in 1 2 3; do
     # 主：dpaste.org（匿名，返回 URL）
-    _u=$(timeout 120 curl -s --max-time 110 -X POST          -F "content=<$"$_b64"" -F "format=url" https://dpaste.org/api/ 2>/dev/null | tr -d "\r\n")
+    # ⚠️ 修正引号（Round 1）：原写法 -F "content=<$"$_b64"" 展开成 content=<$/path，
+    #    curl 会去找不存在的文件 $/path ⇒ 永远失败。
+    #    正确写法：-F "content=<$_b64"（用 < 读取文件内容）。
+    _u=$(timeout 120 curl -s --max-time 110 -X POST \
+        -F "content=<$_b64" -F "format=url" https://dpaste.org/api/ 2>/dev/null | tr -d "\r\n")
     case "$_u" in
       https://dpaste.org/*) echo "$_u"; return 0 ;;
     esac
@@ -81,6 +85,8 @@ verify_seg() {
   #    内容已在上传时通过 Gist API 确认（返回了文件大小）。
   case "$_url" in
     https://gist.github.com/*) return 0 ;;
+    # ⚠️ dpaste 的 raw 端点是 {url}/raw（Round 1 实测）
+    https://dpaste.org/*) _url="${_url}/raw" ;;
   esac
   for _r in 1 2 3 4 5; do
     timeout 120 curl -s --max-time 110 "$_url" > "$_back.b64" 2>/dev/null
@@ -140,6 +146,17 @@ except Exception: pass
       BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
       [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
       [ "$_r" -lt 3 ] && sleep 3
+    done
+    ;;
+  https://dpaste.org/*)
+    # ⚠️ dpaste 的 HTML 页面不是原始内容，raw 端点是 {url}/raw（Round 1 实测）
+    _raw="${URL}/raw"
+    for _r in 1 2 3 4 5; do
+      timeout 90 curl -s --max-time 85 "$_raw" > "$TMP/back.b64" 2>/dev/null
+      base64 -d "$TMP/back.b64" > "$TMP/rt.tar.gz" 2>/dev/null
+      BSUM=$(md5sum "$TMP/rt.tar.gz" 2>/dev/null | cut -d" " -f1)
+      [ "$SUM" = "$BSUM" ] && { _ok=1; break; }
+      [ "$_r" -lt 5 ] && { echo "    ⚠ 回读第 $_r 次未就绪，等待 $(( _r * 3 ))s" >&2; sleep $(( _r * 3 )); }
     done
     ;;
   *)
