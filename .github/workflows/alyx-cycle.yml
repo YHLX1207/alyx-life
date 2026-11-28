@@ -361,6 +361,38 @@ jobs:
           done
           echo "⚠ 推送失败，本轮状态未写回（链继续，下轮会重试）"
 
+      - name: 触发备份节点（不依赖 cron）
+        # ⚠️ Round 10 实测：备份节点的 cron 丢失率 93%
+        #    配置每小时 2 次，实际平均 430 分钟才跑一次。
+        #    主链的自我派发可靠（99%），所以让主链负责触发备份。
+        #    每 2 轮触发一次（约每小时），比 cron 可靠得多。
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 用运行序号控制频率：偶数轮才触发
+          N="${{ github.run_number }}"
+          if [ $(( N % 2 )) -ne 0 ]; then
+            echo "  本轮不触发备份节点（第 $N 轮，奇数）"
+            exit 0
+          fi
+          echo "  触发备份节点（第 $N 轮，偶数）"
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d '{"ref":"main"}' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/alyx-backup.yml/dispatches" 2>/dev/null)
+            if [ "$code" = "204" ]; then
+              echo "  ✓ 备份节点已触发"
+              exit 0
+            fi
+            echo "  第 $i 次失败 (HTTP $code)"
+            sleep 5
+          done
+          echo "  ⚠ 备份节点触发失败（不影响主链）"
+
       - name: 自我唤醒（链式循环，不依赖 cron）
         if: always()   # 无论前面是否失败，链的收尾步骤必须执行
         # ⚠️ cron 实测会触发（Round 201 核实历史 4 次：#1 成功，#37/#38/#57 被并发取消）。
