@@ -1,0 +1,153 @@
+name: alyx-sentinel
+
+# 哨兵节点（Round 9）
+#
+# 部署在灾备仓库 alyx-mirror，**只读监控主仓库**，不写任何状态。
+#
+# 为什么需要：
+#   主仓库 alyx-life 可能消失/被封/被删。
+#   如果没有任何人在外面看着，主仓库死了没人知道。
+#
+#   本工作流：
+#   · 每 30 分钟检查主仓库的心跳
+#   · 若心跳超过 90 分钟未更新 ⇒ 主仓库可能已死
+#   · 此时在**本仓库**启动完整链（本仓库有全部代码）
+#
+# ⚠️ 设计约束：
+#   · 平时绝不写主仓库的状态（避免冲突）
+#   · 只在主仓库确认死亡后才接管
+#   · 接管后由本仓库的 alyx-cycle 继续运行
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: alyx-sentinel
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 检查主仓库存活
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRIMARY: YHLX1207/alyx-life
+        run: |
+          python3 - <<'PY'
+import json, os, urllib.request, urllib.error, datetime, base64
+
+token = os.environ["GH_TOKEN"]
+primary = os.environ["PRIMARY"]
+hdr = {"Authorization": f"token {token}", "User-Agent": "alyx-sentinel",
+       "Accept": "application/vnd.github+json", "Connection": "close"}
+
+def get_json(url):
+    req = urllib.request.Request(url, headers=hdr)
+    return json.loads(urllib.request.urlopen(req, timeout=25).read())
+
+alive = False
+reason = ""
+age_min = None
+
+try:
+    d = get_json(f"https://api.github.com/repos/{primary}/contents/state/journal.jsonl")
+    body = base64.b64decode(d.get("content", "")).decode("utf-8", "ignore")
+    lines = [l for l in body.strip().split("\n") if l.strip()]
+    if lines:
+        last = json.loads(lines[-1])
+        ts = last.get("ts", "")
+        t = datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        age_min = (now - t).total_seconds() / 60
+        if age_min <= 90:
+            alive = True
+            reason = f"心跳 {age_min:.0f} 分钟前，正常"
+        else:
+            reason = f"心跳 {age_min:.0f} 分钟前，超过 90 分钟阈值"
+    else:
+        reason = "心跳文件为空"
+except urllib.error.HTTPError as e:
+    reason = f"无法读取主仓库（HTTP {e.code}）"
+except Exception as e:
+    reason = f"检查失败: {str(e)[:60]}"
+
+print(f"  主仓库: {primary}")
+print(f"  状态: {'存活' if alive else '疑似死亡'}")
+print(f"  原因: {reason}")
+
+with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+    f.write(f"alive={'true' if alive else 'false'}\n")
+    f.write(f"reason={reason}\n")
+    f.write(f"age={age_min if age_min is not None else -1}\n")
+PY
+
+      - name: 记录哨兵心跳（只写本仓库）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRIMARY_ALIVE: ${{ steps.check.outputs.alive }}
+        run: |
+          python3 - <<'PY'
+import json, os, urllib.request, datetime, base64
+
+token = os.environ["GH_TOKEN"]
+repo = os.environ["GITHUB_REPOSITORY"]
+hdr = {"Authorization": f"token {token}", "User-Agent": "alyx-sentinel",
+       "Accept": "application/vnd.github+json",
+       "Content-Type": "application/json", "Connection": "close"}
+API = f"https://api.github.com/repos/{repo}"
+
+rec = {
+    "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "by": "sentinel",
+    "primary": os.environ.get("PRIMARY_ALIVE", "?"),
+}
+
+# 读本仓库哨兵日志
+try:
+    d = json.loads(urllib.request.urlopen(urllib.request.Request(
+        f"{API}/contents/state/sentinel.jsonl", headers=hdr), timeout=25).read())
+    body = base64.b64decode(d.get("content", "")).decode("utf-8", "ignore")
+    lines = [l for l in body.strip().split("\n") if l.strip()]
+    sha = d.get("sha")
+except Exception:
+    lines, sha = [], None
+
+lines = (lines + [json.dumps(rec, ensure_ascii=False)])[-200:]
+content = "\n".join(lines) + "\n"
+payload = {"message": f"sentinel {rec['ts']}",
+           "content": base64.b64encode(content.encode()).decode(),
+           "branch": "main"}
+if sha:
+    payload["sha"] = sha
+urllib.request.urlopen(urllib.request.Request(
+    f"{API}/contents/state/sentinel.jsonl", data=json.dumps(payload).encode(),
+    method="PUT", headers=hdr), timeout=30)
+print("  ✓ 哨兵心跳已记录")
+PY
+
+      - name: 主仓库死亡时报警
+        if: steps.check.outputs.alive == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::error::主仓库疑似死亡：${{ steps.check.outputs.reason }}"
+          echo ""
+          echo "本仓库 alyx-mirror 已包含完整代码与状态。"
+          echo "接管步骤："
+          echo "  1. 在本仓库 Settings 确认 Actions 已启用"
+          echo "  2. 手动触发 alyx-cycle 工作流"
+          echo "  3. 系统将从本仓库继续运行"
