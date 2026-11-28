@@ -1,4 +1,29 @@
 {
+ "actions": {
+  "id": "actions",
+  "did": null,
+  "first_seen": "2026-11-25T16:05:34Z",
+  "last_seen": "2026-11-28T10:17:04Z",
+  "beats": 126,
+  "kind": "actions",
+  "caps": [
+   "bootstrap",
+   "chain-check",
+   "consensus",
+   "heartbeat",
+   "identity",
+   "maintain",
+   "mutual-watch",
+   "node-registration",
+   "persistence",
+   "push",
+   "restore",
+   "self-check",
+   "self-reflection",
+   "snapshot-release"
+  ],
+  "age_hours": 0.0
+ },
  "device-localhost": {
   "id": "device-localhost",
   "did": "did:alyx:shamir-2of3",
@@ -25,35 +50,10 @@
    "self-reflection",
    "snapshot-release"
   ],
-  "age_hours": 11.9
- },
- "actions": {
-  "id": "actions",
-  "did": null,
-  "first_seen": "2026-11-25T16:05:34Z",
-  "last_seen": "2026-11-28T09:45:40Z",
-  "beats": 125,
-  "kind": "actions",
-  "caps": [
-   "bootstrap",
-   "chain-check",
-   "consensus",
-   "heartbeat",
-   "identity",
-   "maintain",
-   "mutual-watch",
-   "node-registration",
-   "persistence",
-   "push",
-   "restore",
-   "self-check",
-   "self-reflection",
-   "snapshot-release"
-  ],
-  "age_hours": 0.0
+  "age_hours": 12.42
  },
  "_summary": {
-  "ts": "2026-11-28T09:45:40Z",
+  "ts": "2026-11-28T10:17:04Z",
   "total_nodes": 2,
   "active_nodes": [
    "actions"
