@@ -206,14 +206,23 @@ if ! cp "$_SD/adaptive-watchdog.sh" "$_tm/scripts/" 2>/dev/null; then
   printf "  ✗ 无法准备防空转测试副本\n"; fail=$((fail+1))
 else
 printf '#!/bin/sh\ndecide_interval() { :; }\n' > "$_tm/scripts/policy.sh"
-( cd "$_tm" && timeout 8 bash scripts/adaptive-watchdog.sh 2 >/dev/null 2>&1 ) &
+# ⚠️ 用独立锁后缀，避免与正在运行的守护冲突（Round 3）
+( cd "$_tm" && ALYX_LOCK_SUFFIX=".test-$$" timeout 8 bash scripts/adaptive-watchdog.sh 2 >/dev/null 2>&1 ) &
 _bt=$!; sleep 6; kill $_bt 2>/dev/null
 # ⚠️ 原判据是"日志行数<12"，但实测**空转几乎不产生日志**
 #    （日志仅在 state 变化时记录）⇒ 该判据无法区分正常与空转，是真空检查（Round 115）。
 #    改为断言**行为**：policy 返回空时必须触发 fallback 并退回 BASE，而不是高速轮询。
 _n=$(wc -l < "$_tm/logs/watchdog.log" 2>/dev/null || echo 0)
-_fb=$(grep -c "fallback" "$_tm/logs/watchdog.log" 2>/dev/null || echo 0)
-_it=$(cat "$_tm/state/iter-count" 2>/dev/null || echo 0)
+# ⚠️ 修复（Round 3）：grep -c 无匹配时返回空 + 非零退出码，
+#    `|| echo 0` 会产生 "0\n0" 两行，整数比较报错。
+#    改用 tr -d 清理 + 明确默认值。
+_fb=$(grep -c "fallback" "$_tm/logs/watchdog.log" 2>/dev/null | tr -d '[:space:]')
+_fb=${_fb:-0}
+_it=$(cat "$_tm/state/iter-count" 2>/dev/null | tr -d '[:space:]')
+_it=${_it:-0}
+# 双重保险：非数字则归零
+case "$_fb" in *[!0-9]*|'') _fb=0 ;; esac
+case "$_it" in *[!0-9]*|'') _it=0 ;; esac
 if [ "${_fb:-0}" -ge 1 ] && [ "${_it:-0}" -le 8 ]; then
   printf "  ✓ 空值退化保护有效（已 fallback，%s 次迭代/6s）\n" "$_it"; pass=$((pass+1))
 else
