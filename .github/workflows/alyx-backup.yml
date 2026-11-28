@@ -95,6 +95,22 @@ jobs:
         continue-on-error: true
         run: bash scripts/snapshot-release.sh
 
+      - name: 同步灾备镜像（独立故障域）
+        # ⚠️ Round 8：当前全部依赖单仓库 alyx-life。
+        #    仓库消失 = 系统永久死亡。本步骤把代码与状态同步到 alyx-mirror。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        continue-on-error: true
+        run: |
+          # MIRROR_TOKEN 需手动配置（跨仓库写入需要 PAT，GITHUB_TOKEN 无权限）
+          if [ -n "${MIRROR_TOKEN:-}" ]; then
+            GH_TOKEN="$MIRROR_TOKEN" bash scripts/mirror-sync.sh
+          else
+            echo "  · MIRROR_TOKEN 未配置，跳过镜像同步"
+            echo "    （需要手动在 Settings→Secrets 添加 alyx-mirror 的 PAT）"
+          fi
+
       - name: 记录备份节点心跳
         # 让主链知道"备份节点还活着"，形成真正的双节点互监
         env:
