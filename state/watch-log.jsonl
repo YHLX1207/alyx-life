@@ -140,3 +140,4 @@
 {"ts": "2026-11-28T17:35:52Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.2, "beats": 144}], "takeover_needed": false}
 {"ts": "2026-11-28T18:06:59Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 1.72, "beats": 144}], "takeover_needed": false}
 {"ts": "2026-11-28T18:38:07Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.13, "beats": 145}], "takeover_needed": false}
+{"ts": "2026-11-28T18:59:23Z", "me": "actions", "role": "peer", "note": "1 个同伴活跃", "others": [{"id": "device-localhost", "age_h": 0.48, "beats": 145}], "takeover_needed": false}
