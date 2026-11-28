@@ -248,6 +248,12 @@ print(d.get('adb',0), d.get('shz',0))
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 60 bash ./self-assess.sh >> ../logs/watchdog.log 2>&1 || true ) &
   fi
+
+  # 灾备镜像同步（Round 8）：每 60 轮（约 6 小时）同步到 alyx-mirror。
+  # 设备有完整 PAT，能做跨仓库写入；CI 的 GITHUB_TOKEN 不行。
+  if [ $(( n % 60 )) -eq 0 ]; then
+    ( timeout 600 ./mirror-sync.sh >> ../logs/watchdog.log 2>&1 || true ) &
+  fi
   # 进化状态摘要（Round 241）：每 40 轮感知自身进化程度。
   if [ $(( n % 40 )) -eq 0 ]; then
     ( timeout 60 bash ./evolution-summary.sh >> ../logs/watchdog.log 2>&1 || true ) &
