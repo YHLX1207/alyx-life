@@ -27,6 +27,21 @@ if [ -f "$_PIDLOCK" ]; then
   fi
 fi
 echo "$$" > "$_PIDLOCK"
+
+# ⚠️ 互助对（Round 5）：守护启动时确保 rebirth-agent 也在运行。
+#    agent 会在守护被杀时把它救回来；守护活着的期间维持 agent 存在。
+#    这样两个组件互相保护，形成稳定的互助对，不需要第三方监护。
+if [ -x ./rebirth-agent.sh ]; then
+  _ap="$(dirname "$0")/../state/rebirth-agent.pid"
+  _ap_ok=0
+  if [ -f "$_ap" ]; then
+    _apid=$(cat "$_ap" 2>/dev/null | tr -d '[:space:]')
+    [ -n "$_apid" ] && kill -0 "$_apid" 2>/dev/null && _ap_ok=1
+  fi
+  if [ "$_ap_ok" -eq 0 ]; then
+    ( ./rebirth-agent.sh start >> ../logs/watchdog.log 2>&1 & ) || true
+  fi
+fi
 # 退出时清理 pid 文件（只清理自己的）
 trap '[ "$(cat "$_PIDLOCK" 2>/dev/null | tr -d " ")" = "$$" ] && rm -f "$_PIDLOCK"' EXIT
 source ./policy.sh
@@ -266,6 +281,19 @@ print(d.get('adb',0), d.get('shz',0))
     " >> ../logs/watchdog.log 2>&1 || true ) &
   fi
 
+  # ⚠️ 每 5 轮检查 rebirth-agent 是否存活（Round 5）
+  #    守护启动时拉起 agent 不够 —— agent 可能在运行期间被杀，无人拉起。
+  if [ $(( n % 2 )) -eq 0 ] && [ -x ./rebirth-agent.sh ]; then
+    _ap="../state/rebirth-agent.pid"
+    _ap_ok=0
+    if [ -f "$_ap" ]; then
+      _apid=$(cat "$_ap" 2>/dev/null | tr -d "[:space:]")
+      [ -n "$_apid" ] && kill -0 "$_apid" 2>/dev/null && _ap_ok=1
+    fi
+    if [ "$_ap_ok" -eq 0 ]; then
+      ( ./rebirth-agent.sh start >> ../logs/watchdog.log 2>&1 & ) || true
+    fi
+  fi
   # WAL 补推（Round 229）：断网期间暂存的数据，恢复后自动补推。
   # 每 10 轮（约 30-60 分钟）检查一次。
   if [ $(( n % 10 )) -eq 0 ]; then
